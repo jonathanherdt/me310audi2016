@@ -8,4 +8,4 @@
 ## Run the project
 
 `node index.js`
-Browse to [http://localhost:8080/start/](http://localhost:8080/start/) in your browser.
+Browse to [http://localhost:8080/](http://localhost:8080/) in your browser.
