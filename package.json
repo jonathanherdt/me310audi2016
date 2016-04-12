@@ -1,0 +1,16 @@
+{
+  "name": "simplenodeapp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.13.4",
+    "googleapis": "^4.0.0",
+    "request": "^2.70.0",
+    "serve-static": "^1.10.2",
+    "socket.io": "^1.4.5"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "author": "ME310 - Team Audi"
+}
