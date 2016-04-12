@@ -4,7 +4,7 @@ var host = 'https://www.googleapis.com',
 	path_calendar = '/calendar/v3/calendars/primary',
 	path_eventlist = '/events';
 
-exports.getOrdereFutureCalendarEvents = function (http, access_token, callback) {
+exports.getOrderedFutureCalendarEvents = function (http, access_token, callback) {
 	var maxTimeToRequest = new Date();
 	maxTimeToRequest.setDate(maxTimeToRequest.getDate() + 7); // request only events that happen in the coming week
 
