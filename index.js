@@ -15,18 +15,19 @@ google.options({ auth: oauth2Client });
 
 var googleAuthUrl = oauth2Client.generateAuthUrl({
   access_type: 'offline', // 'online' (default) or 'offline' (gets refresh_token)
-  scope: 'https://www.googleapis.com/auth/calendar' 
+  scope: 'https://www.googleapis.com/auth/calendar'
 });
+
 
 app.use('/', express.static(__dirname + '/resources'));
 app.use('/js', express.static(__dirname + '/resources/js'));
 
 // On the start page, directly redirect to the google authentication page
-app.get('/', function(req, res){
+app.get('/start/', function(req, res){
 	res.writeHead(301, {
 		'Location': googleAuthUrl
 	});
-	res.end();	
+	res.end();
 });
 
 // When the user gets back from the google authentication, display the connection page that gets updated dynamically (over sockets.io) once we received the calendar data
