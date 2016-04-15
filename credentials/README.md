@@ -1,0 +1,1 @@
+ Get Google developer credentials for the Google Calendar API (--> https://console.developers.google.com/), download the credentials as .json, rename the file to "key.json" and put that file into this folder
