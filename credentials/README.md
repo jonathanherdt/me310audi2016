@@ -1,1 +1,1 @@
- Get Google developer credentials for the Google Calendar API (--> https://console.developers.google.com/), download the credentials as .json, rename the file to "key.json" and put that file into this folder
+Get Google developer credentials for the Google Calendar API (go to <a href="https://console.developers.google.com/">the Google Developer console/</a> for that), download the credentials as .json, rename the file to 'key.json' and put that file into this folder
