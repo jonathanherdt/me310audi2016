@@ -10,7 +10,12 @@
     "serve-static": "^1.10.2",
     "socket.io": "^1.4.5"
   },
+  "repository" :  {
+      "type" : "git", 
+      "url" : "https://github.com/jonathanherdt/me310audi2016"
+  },
   "devDependencies": {},
   "scripts": {},
-  "author": "ME310 - Team Audi"
+  "author": "ME310 - Team Audi",
+  "license": "MIT"
 }
