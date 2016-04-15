@@ -4,11 +4,11 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
 var google = require('googleapis');
-var urlshortener = google.urlshortener('v1');
+var googleCal = google.calendar('v3');
 var OAuth2 = google.auth.OAuth2;
 var googleCredentials = require('./credentials/key.json');
 
-var cal = require('./server/GoogleConnectors/googleCalendarConnector.js');
+var cal = require('./server/GoogleConnectors/googleCalendarConnector.js')(googleCal);
 var maps = require('./server/GoogleConnectors/googleMapsConnector.js');
 
 var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, 'http://localhost:8080/back');
@@ -18,7 +18,7 @@ google.options({
 
 var googleAuthUrl = oauth2Client.generateAuthUrl({
 	access_type: 'offline', // 'online' (default) or 'offline' (gets refresh_token)
-	scope: 'https://www.googleapis.com/auth/calendar'
+	scope: 'https://www.googleapis.com/auth/calendar.readonly'
 });
 
 app.use('/js', express.static(__dirname + '/public/js'));
@@ -46,7 +46,7 @@ io.on('connection', function (socket) {
 			// Now tokens contains an access_token and an optional refresh_token. Save them.
 			if (!err) {
 				oauth2Client.setCredentials(tokens);
-				cal.getOrderedFutureCalendarEvents(http, tokens.access_token, function eventListReceived(events) {
+				cal.getOrderedFutureCalendarEvents(oauth2Client, function eventListReceived(events) {
 					// Once events are received, use sockets.io to send them to the frontend
 					io.emit('next event', events[0]);
 				});
