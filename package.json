@@ -1,21 +1,21 @@
 {
-  "name": "simplenodeapp",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "dependencies": {
-    "express": "^4.13.4",
-    "googleapis": "^4.0.0",
-    "googlemaps": "^1.4.0",
-    "serve-static": "^1.10.2",
-    "socket.io": "^1.4.5"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jonathanherdt/me310audi2016"
-  },
-  "devDependencies": {},
-  "scripts": {},
-  "author": "ME310 - Team Audi",
-  "license": "MIT"
+	"name": "simplenodeapp",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"dependencies": {
+		"express": "^4.13.4",
+		"googleapis": "^4.0.0",
+		"request": "^2.72.0",
+		"serve-static": "^1.10.2",
+		"socket.io": "^1.4.5"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/jonathanherdt/me310audi2016"
+	},
+	"devDependencies": {},
+	"scripts": {},
+	"author": "ME310 - Team Audi",
+	"license": "MIT"
 }
