@@ -1,5 +1,5 @@
 module.exports = function (googleCalendar) {
-    
+
     var module = {};
 
     module.getOrderedFutureCalendarEvents = function (auth, callback) {
@@ -20,12 +20,21 @@ module.exports = function (googleCalendar) {
                 console.log('No upcoming events found.');
             } else {
                 console.log('Upcoming 10 events:');
+                var cleanedUpEvents = [];
                 for (var i = 0; i < events.length; i++) {
                     var event = events[i];
                     var start = event.start.dateTime || event.start.date;
                     console.log('%s - %s', start, event.summary);
+                    if(event.start.dateTime && event.location){
+                        cleanedUpEvents.push(event);
+                    }
                 }
-                callback(events);
+                if(cleanedUpEvents.length > 0){
+                    callback(cleanedUpEvents);
+                }
+                else {
+                    console.error("No upcoming events with location and start time");
+                }
             }
           });
     }
