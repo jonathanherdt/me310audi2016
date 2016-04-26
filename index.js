@@ -11,7 +11,7 @@ var googleCredentials = require('./credentials/key.json');
 var cal = require('./server/GoogleConnectors/googleCalendarConnector.js')(googleCal);
 var maps = require('./server/GoogleConnectors/googleMapsConnector.js');
 
-var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, 'http://localhost:8080/back');
+var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, googleCredentials.web.redirect_uris[0]);
 google.options({
 	auth: oauth2Client
 });
