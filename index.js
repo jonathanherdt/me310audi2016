@@ -5,6 +5,7 @@ var io = require('socket.io')(http);
 
 var google = require('googleapis');
 var googleCal = google.calendar('v3');
+var userinfo = google.oauth2('v2');
 var OAuth2 = google.auth.OAuth2;
 var googleCredentials = require('./credentials/key.json');
 
@@ -46,9 +47,14 @@ io.on('connection', function (socket) {
 
 	socket.on('app - create new user', function (id) {
 		var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, googleCredentials.web.redirect_uris[0]);
+		var scopes = [
+		  'https://www.googleapis.com/auth/userinfo.email',
+		  'https://www.googleapis.com/auth/userinfo.profile',
+		  'https://www.googleapis.com/auth/calendar'
+		];
 		var googleAuthUrl = oauth2Client.generateAuthUrl({
 			access_type: 'offline', // 'online' (default) or 'offline' (gets refresh_token)
-			scope: ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/userinfo.profile'],
+			scope: scopes,
 			state: id
 		});
 
@@ -61,6 +67,14 @@ io.on('connection', function (socket) {
 		cal.getOrderedFutureCalendarEvents(oauth2Client, function eventListReceived(events) {
 			// Once events are received, use sockets.io to send them to the frontend
 			users[id].socket.emit('next event', events[0]);
+
+			// Get user mail and send it to the client
+			userinfo.userinfo.get({
+				userId: 'me',
+				auth: oauth2Client
+			}, function (err, response) {
+				users[id].socket.emit('user mail', response.email);
+			});
 		});
 	})
 
