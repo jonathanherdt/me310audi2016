@@ -11,6 +11,10 @@ exports.getDistanceToLocationFromCurrentPosition = function (latitude, longitude
 		directions = JSON.parse(body);
 		//console.log(directions.routes[0].legs[0]);
 		// example output: http://maps.googleapis.com/maps/api/directions/json?origin=52.496,13.358&departure_time=1461158373&destination=52.517,13.341&mode=transit
-		callback(directions.routes[0].legs[0]);
+		if (directions.routes[0] == null) {
+			console.log(directions);
+		} else {
+			callback(directions.routes[0].legs[0]);
+		}
 	});
 }
