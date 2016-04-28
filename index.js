@@ -73,9 +73,20 @@ io.on('connection', function (socket) {
 				userId: 'me',
 				auth: oauth2Client
 			}, function (err, response) {
+				users[id].email = response.email;
+				users[id].name = response.name;
+				users[id].picture = response.picture;
 				users[id].socket.emit('user mail', response.email);
 			});
 		});
+	})
+
+	socket.on('app - get users', function () {
+		var stripped_users = {};
+		Object.keys(users).forEach(function(entry) {
+    		stripped_users[entry] = {name: users[entry].name, email: users[entry].email, picture: users[entry].picture};
+  		});
+		socket.emit('user list', stripped_users);
 	})
 
 	socket.on('get directions for event', function (id, latitude, longitude, eventData) {
