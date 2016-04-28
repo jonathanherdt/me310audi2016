@@ -3,10 +3,15 @@
 
 <head>
 	<title>Welcome page!</title>
+	<script src="http://code.jquery.com/jquery-latest.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="/js/uid-creator.js"></script>
+	<script src="/js/startpage.js"></script>
 </head>
 
 <body>
 	<h>Welcome</h>
+	<button id="bt_newuser" onclick="buttonClicked()">New user</button>
 	<p>Please go to <a href="/start">this page</a> to log in with your google calendar and to get started with the demo!</p>
 </body>
 
