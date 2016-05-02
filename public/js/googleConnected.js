@@ -17,7 +17,7 @@ socket.on('next event', function (event) {
 	}
 
 	function positionSuccess(position) {
-		socket.emit('get directions for event', getLocalIdentifier(), position.coords.latitude, position.coords.longitude, event);
+		socket.emit('get directions for event', position.coords.latitude, position.coords.longitude, event);
 	};
 
 	function positionError() {
@@ -34,4 +34,4 @@ socket.on('user mail', function (mail) {
 	$('#user-mail').text(mail);
 })
 
-socket.emit('get calendar', getLocalIdentifier());
+socket.emit('get calendar');

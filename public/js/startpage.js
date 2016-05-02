@@ -4,7 +4,7 @@ var socket = io.connect('', {
 
 
 function buttonClicked() {
-	socket.emit("app - create new user", getLocalIdentifier());
+	socket.emit("app - create new user");
 }
 
 socket.on('app - go to url', function (url) {
