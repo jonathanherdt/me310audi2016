@@ -43,6 +43,8 @@ app.get('/back', function (req, res) {
 		if (!err) {
 			users[user_id].tokens = tokens;
 			storage.setItem('users', users);
+		} else {
+			console.log("Error: " + err);
 		}
 	});
 
