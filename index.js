@@ -51,7 +51,7 @@ io.on('connection', function (socket) {
     if (users[id] == undefined) users[id] = {};
 
 	socket.on('app - create new user', function () {
-		var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, googleCredentials.web.redirect_uris[0]);
+		var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, googleCredentials.web.redirect_uris[1]);
 		var scopes = [
 		  'https://www.googleapis.com/auth/userinfo.email',
 		  'https://www.googleapis.com/auth/userinfo.profile',
