@@ -42,10 +42,11 @@ app.get('/back', function (req, res) {
 // A user connects over socket.io 
 io.on('connection', function (socket) {
 
-	if (users[socket.handshake.query.id] == undefined) users[socket.handshake.query.id] = {};
-	users[socket.handshake.query.id].socket = socket;
+    //JSON.stringify(users, null, 4)
+    var id = socket.handshake.query.id;
+    if (users[id] == undefined) users[id] = {};
 
-	socket.on('app - create new user', function (id) {
+	socket.on('app - create new user', function () {
 		var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, googleCredentials.web.redirect_uris[0]);
 		var scopes = [
 		  'https://www.googleapis.com/auth/userinfo.email',
@@ -62,11 +63,12 @@ io.on('connection', function (socket) {
 		socket.emit('app - go to url', googleAuthUrl);
 	});
 
-	socket.on('get calendar', function (id) {
+	socket.on('get calendar', function () {
 		var oauth2Client = users[id].oauth2Client;
+        console.log("get calendar");
 		cal.getOrderedFutureCalendarEvents(oauth2Client, function eventListReceived(events) {
 			// Once events are received, use sockets.io to send them to the frontend
-			users[id].socket.emit('next event', events[0]);
+			socket.emit('next event', events[0]);
 
 			// Get user mail and send it to the client
 			userinfo.userinfo.get({
@@ -76,7 +78,8 @@ io.on('connection', function (socket) {
 				users[id].email = response.email;
 				users[id].name = response.name;
 				users[id].picture = response.picture;
-				users[id].socket.emit('user mail', response.email);
+				
+				socket.emit('user mail', response.email);
 			});
 		});
 	})
@@ -89,21 +92,37 @@ io.on('connection', function (socket) {
 		socket.emit('user list', stripped_users);
 	})
 
-	socket.on('get directions for event', function (id, latitude, longitude, eventData) {
+
+	socket.on('get directions for event', function (latitude, longitude, eventData) {
 		// Get data for four different modes of transportation
 		maps.getDistanceToLocationFromCurrentPosition(latitude, longitude, 'driving', eventData, function (data) {
-			users[id].socket.emit('distance time calculated', data, '🚗');
+			socket.emit('distance time calculated', data, '🚗');
 		});
 		maps.getDistanceToLocationFromCurrentPosition(latitude, longitude, 'walking', eventData, function (data) {
-			users[id].socket.emit('distance time calculated', data, '🏃');
+			socket.emit('distance time calculated', data, '🏃');
 		});
 		maps.getDistanceToLocationFromCurrentPosition(latitude, longitude, 'bicycling', eventData, function (data) {
-			users[id].socket.emit('distance time calculated', data, '🚴');
+			socket.emit('distance time calculated', data, '🚴');
 		});
 		maps.getDistanceToLocationFromCurrentPosition(latitude, longitude, 'transit', eventData, function (data) {
-			users[id].socket.emit('distance time calculated', data, '🚋');;
+			socket.emit('distance time calculated', data, '🚋');;
 		});
 	});
+    
+    /* ------ CLOCK REQUESTS ------ */
+    socket.on('request calendars', function(day) {    
+        // the clock requests the calendar for a specific day for all logged in users
+        for (var userID in users) {
+            if (userID == undefined) continue;
+            var oauth2Client = users[userID].oauth2Client;
+            if (oauth2Client != undefined) {
+                cal.getCalendarEventsForOneDay(oauth2Client, day, function(calendar) {
+                    if (calendar.length > 0) socket.emit('receive calendar', calendar);         
+                });   
+                
+            }
+        }       
+    });
 });
 
 http.listen(8080, function () {
