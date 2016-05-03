@@ -121,12 +121,12 @@ io.on('connection', function (socket) {
 	});
 
 	/* ------ CLOCK REQUESTS ------ */
-	socket.on('request calendars', function (day) {
+	socket.on('request calendars', function (data) {
 		// the clock requests the calendar for a specific day for all logged in users
 		for (var userID in users) {
 			if (userID == "undefined") continue;
 			oauth2Client.setCredentials(users[userID].tokens);
-			cal.getCalendarEventsForOneDay(oauth2Client, day, function (events) {
+			cal.getCalendarEventsForOneDay(oauth2Client, data.day, data.lat, data.long, function (events) {
 				if (events.length > 0) {
 					// add user information to the calendar before sending it to the clock
 					var calendar = {

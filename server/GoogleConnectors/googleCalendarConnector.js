@@ -41,7 +41,7 @@ module.exports = function (googleCalendar) {
 		});
 	}
 
-	module.getCalendarEventsForOneDay = function (auth, day, callback) {
+	module.getCalendarEventsForOneDay = function (auth, day, lat, long, callback) {
 		var todayMidnight = new Date(Date.parse(day));
 		todayMidnight.setHours(0, 0, 0, 0);
 		var tomorrowMidnight = new Date(Date.parse(day));;
@@ -73,18 +73,28 @@ module.exports = function (googleCalendar) {
 						var cleanEvent = {
 							start: new Date(Date.parse(event.start.dateTime)),
 							end: new Date(Date.parse(event.end.dateTime)),
+							location: event.location,
 							title: event.summary
 						};
-						/*maps.addTransitInformationToEvent(cleanEvent, function () {
-							cleanedUpEvents.push(cleanEvent);
-						});*/
 						cleanedUpEvents.push(cleanEvent);
 					}
 				}
+
+				// after adding the bare events, add transit information to each of them
+				var eventsEnrichedWithTransit = 0;
+				cleanedUpEvents.forEach(function (event) {
+					maps.addTransitInformationToEvent(event, lat, long, function () {
+						eventsEnrichedWithTransit++;
+						// once all elements have been enriched with transit data, sent it back to the main index
+						if (eventsEnrichedWithTransit == cleanedUpEvents.length) {
+							callback(cleanedUpEvents);
+						}
+					});
+				});
 				if (cleanedUpEvents.length <= 0) {
-					console.error('No upcoming events with and start time');
+					console.error('No upcoming events with start time');
+					callback(cleanedUpEvents);
 				}
-				callback(cleanedUpEvents);
 			}
 		});
 	}
