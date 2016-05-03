@@ -11,7 +11,7 @@ function guid() {
 function getLocalIdentifier() {
 	var cookie = getCookie("identifier");
 	if (cookie == "") {
-		document.cookie += "identifier=" + guid();
+		document.cookie = "identifier=" + guid();
 	}
 	return getCookie("identifier");
 }
