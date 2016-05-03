@@ -39,6 +39,10 @@ app.get('/back', function (req, res) {
 	res.sendFile(__dirname + '/public/googleConnected.html');
 });
 
+app.get('/return', function (req, res) {
+	res.sendFile(__dirname + '/public/googleConnected.html');
+});
+
 // A user connects over socket.io 
 io.on('connection', function (socket) {
 
@@ -78,7 +82,7 @@ io.on('connection', function (socket) {
 				users[id].email = response.email;
 				users[id].name = response.name;
 				users[id].picture = response.picture;
-				
+
 				socket.emit('user mail', response.email);
 			});
 		});
