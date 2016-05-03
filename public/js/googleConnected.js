@@ -30,8 +30,8 @@ socket.on('distance time calculated', function (result, mode) {
 	$('#next-event-time').after("<br>🕘" + mode + " It will take you ~" + duration + " to get there.");
 });
 
-socket.on('user mail', function (mail) {
-	$('#user-mail').text(mail);
+socket.on('user name', function (name) {
+	$('#user-name').text(name);
 })
 
 socket.emit('get calendar');

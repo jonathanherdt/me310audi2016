@@ -12,7 +12,7 @@ function userListClicked() {
 }
 
 function loginClicked() {
-	window.location.href = 'return';
+	window.location.href = 'googleConnected.html';
 }
 
 socket.on('app - go to url', function (url) {
