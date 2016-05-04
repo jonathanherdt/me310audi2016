@@ -30,8 +30,16 @@ socket.on('distance time calculated', function (result, mode) {
 	$('#next-event-time').after("<br>🕘" + mode + " It will take you ~" + duration + " to get there.");
 });
 
-socket.on('user name', function (name) {
-	$('#user-name').text(name);
+socket.on('user authenticated', function (user) {
+	$('#user-name').text(user.name);
+	socket.emit('get calendar');
 })
 
-socket.emit('get calendar');
+socket.on('user not authenticated', function (id) {
+	$('#user-name').text('<not yet authenticated> (did you forget to connect your google account?)');
+	setTimeout(function () {
+		socket.emit('check login state');
+    }, 1000);
+})
+
+socket.emit('check login state');
