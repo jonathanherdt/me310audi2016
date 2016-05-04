@@ -70,7 +70,7 @@ app.get('/back', function (req, res) {
 		});
 	});
 
-	res.sendFile(__dirname + '/public/googleConnected.html');
+	res.sendFile(__dirname + '/public/back.html');
 });
 
 // A user connects over socket.io 
