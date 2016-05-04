@@ -20,5 +20,13 @@ socket.on('app - go to url', function (url) {
 });
 
 socket.on('user list', function (users) {
+
+	var userlist = '';
+
+	Object.keys(users).forEach(function (entry) {
+		userlist += users[entry].name + ' (' + users[entry].email + '); ';
+	});	
+
+	$('#user-list').text(userlist);
 	console.log(users);
 });
