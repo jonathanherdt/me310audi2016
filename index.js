@@ -170,7 +170,10 @@ io.on('connection', function (socket) {
 									events: events,
 									name: users[userID].name,
 									email: users[userID].email,
-									picture: users[userID].picture
+									picture: users[userID].picture,
+									carSimulatorData: {
+										batteryLevel: batteryLevel;
+									}
 								};
 
 								//console.log(JSON.stringify(calendar.events, null, 4));
