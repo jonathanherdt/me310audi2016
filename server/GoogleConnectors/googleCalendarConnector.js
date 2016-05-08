@@ -41,7 +41,7 @@ module.exports = function (googleCalendar) {
 		});
 	}
 
-	module.getCalendarEventsForOneDay = function (auth, day, lat, long, callback) {
+	module.getCalendarEventsForOneDay = function (auth, userID, day, origin, callback) {
 		var todayMidnight = new Date(Date.parse(day));
 		todayMidnight.setHours(0, 0, 0, 0);
 		var tomorrowMidnight = new Date(Date.parse(day));;
@@ -83,17 +83,17 @@ module.exports = function (googleCalendar) {
 				// after adding the bare events, add transit information to each of them
 				var eventsEnrichedWithTransit = 0;
 				cleanedUpEvents.forEach(function (event) {
-					maps.addTransitInformationToEvent(event, lat, long, function () {
+					maps.addTransitInformationToEvent(event, origin, function () {
 						eventsEnrichedWithTransit++;
 						// once all elements have been enriched with transit data, sent it back to the main index
 						if (eventsEnrichedWithTransit == cleanedUpEvents.length) {
-							callback(cleanedUpEvents);
+							callback(userID, cleanedUpEvents);
 						}
 					});
 				});
 				if (cleanedUpEvents.length <= 0) {
 					console.error('No upcoming events with start time');
-					callback(cleanedUpEvents);
+					callback(userID, cleanedUpEvents);
 				}
 			}
 		});

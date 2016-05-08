@@ -22,8 +22,10 @@ exports.getDistanceToLocationFromCurrentPosition = function (latitude, longitude
 	});
 }
 
-exports.addTransitInformationToEvent = function (event, latitude, longitude, callback) {
+exports.addTransitInformationToEvent = function (event, origin, callback) {
 	var arrival_time = Math.floor(new Date(event.start).getTime()) / 1000;
+    var latitude = origin.lat,
+        longitude = origin.long;
 
 	var car_request_url = host + path_maps + path_distance + '?origin=' + latitude + ',' + longitude + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=driving&key=' + maps_key;
 	var transit_request_url = host + path_maps + path_distance + '?origin=' + latitude + ',' + longitude + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=transit&key=' + maps_key;

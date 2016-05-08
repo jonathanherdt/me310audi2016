@@ -64,6 +64,10 @@ app.get('/back', function (req, res) {
 			users[user_id].picture = response.picture;
 			users[user_id].signedOn = true;
 
+			// the user's home address needs to be saved as well
+			// TODO: specify that address in the app, send it to the server and turn it into lat/long there
+			users[user_id].address = {lat: '52.392508', long: '13.123017'};
+
 			console.log('new user ' + users[user_id].name + ' authenticated');
 
 			storage.setItem('users', users);
@@ -137,12 +141,12 @@ io.on('connection', function (socket) {
 	});
 
 	/* ------ CLOCK REQUESTS ------ */
-	socket.on('request calendars', function (data) {
+	socket.on('clock - request all calendars', function (data) {
 		// the clock requests the calendar for a specific day for all logged in users
 		for (var userID in users) {
 			if (userID == "undefined") continue;
 			oauth2Client.setCredentials(users[userID].tokens);
-			cal.getCalendarEventsForOneDay(oauth2Client, data.day, data.lat, data.long, function (events) {
+			cal.getCalendarEventsForOneDay(oauth2Client, userID, data.day, users[userID].address, function (userID, events) {
 				if (events.length > 0) {
 					// add user information to the calendar before sending it to the clock
 					var calendar = {
@@ -151,8 +155,8 @@ io.on('connection', function (socket) {
 						email: users[userID].email,
 						picture: users[userID].picture
 					};
-					console.log(JSON.stringify(calendar.events, null, 4));
-					socket.emit('receive calendar', calendar);
+					//console.log(JSON.stringify(calendar.events, null, 4));
+					socket.emit('clock - calendar update', calendar);
 				}
 			});
 		}
