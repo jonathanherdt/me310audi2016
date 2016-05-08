@@ -2,8 +2,6 @@ module.exports = function (googleCalendar) {
 
 	var module = {};
 
-	var maps = require('./googleMapsConnector.js');
-
 	module.getOrderedFutureCalendarEvents = function (auth, callback) {
 		googleCalendar.events.list({
 			auth: auth,
@@ -41,10 +39,10 @@ module.exports = function (googleCalendar) {
 		});
 	}
 
-	module.getCalendarEventsForOneDay = function (auth, userID, day, origin, callback) {
+	module.getCalendarEventsForOneDay = function (auth, userID, day, callback) {
 		var todayMidnight = new Date(Date.parse(day));
 		todayMidnight.setHours(0, 0, 0, 0);
-		var tomorrowMidnight = new Date(Date.parse(day));;
+		var tomorrowMidnight = new Date(Date.parse(day));
 		tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
 		tomorrowMidnight.setHours(0, 0, 0, 0);
 
@@ -80,21 +78,11 @@ module.exports = function (googleCalendar) {
 					}
 				}
 
-				// after adding the bare events, add transit information to each of them
-				var eventsEnrichedWithTransit = 0;
-				cleanedUpEvents.forEach(function (event) {
-					maps.addTransitInformationToEvent(event, origin, function () {
-						eventsEnrichedWithTransit++;
-						// once all elements have been enriched with transit data, sent it back to the main index
-						if (eventsEnrichedWithTransit == cleanedUpEvents.length) {
-							callback(userID, cleanedUpEvents);
-						}
-					});
-				});
 				if (cleanedUpEvents.length <= 0) {
 					console.error('No upcoming events with start time');
-					callback(userID, cleanedUpEvents);
+					return;
 				}
+				callback(userID, cleanedUpEvents);
 			}
 		});
 	}

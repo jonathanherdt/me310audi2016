@@ -22,10 +22,9 @@ exports.getDistanceToLocationFromCurrentPosition = function (latitude, longitude
 	});
 }
 
-exports.addTransitInformationToEvent = function (event, origin, callback) {
+exports.addTransitInformationToEvent = function (event, userID, origin, callback) {
 	var arrival_time = Math.floor(new Date(event.start).getTime()) / 1000;
-    var latitude = origin.lat,
-        longitude = origin.long;
+    var latitude = origin.lat,longitude = origin.long;
 
 	var car_request_url = host + path_maps + path_distance + '?origin=' + latitude + ',' + longitude + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=driving&key=' + maps_key;
 	var transit_request_url = host + path_maps + path_distance + '?origin=' + latitude + ',' + longitude + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=transit&key=' + maps_key;
@@ -34,6 +33,8 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 
 	var requestsDone = 0;
 
+    event.transit_options = {};
+
 	request(car_request_url, function (error, response, body) {
 		requestsDone++;
 		directions = JSON.parse(body);
@@ -41,9 +42,9 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 			console.log("Car routes are empty :'(");
 		} else {
 			var desc = directions.routes[0].legs[0];
-			event.transit_car = {};
-			event.transit_car.duration_without_traffic_in_min = desc.duration.value / 60;
-			if (desc.duration_in_traffic !== undefined) event.transit_car.duration_with_traffic_in_min = desc.duration_in_traffic.value / 60;
+			event.transit_options.car = {};
+			event.transit_options.car.duration = desc.duration.value / 60;
+			if (desc.duration_in_traffic !== undefined) event.transit_options.car.duration_with_traffic = desc.duration_in_traffic.value / 60;
 		}
 		if (requestsDone == 4) callback(event);
 	});
@@ -55,7 +56,7 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 			console.log("Transit routes are empty :'(");
 		} else {
 			var desc = directions.routes[0].legs[0];
-			event.transit_public = {
+			event.transit_options.public = {
 				duration: desc.duration.value / 60,
 				arrival_time: new Date(Date.parse(desc.arrival_time.value + "000"))
 			}
@@ -70,7 +71,7 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 			console.log("Bike routes are empty :'(");
 		} else {
 			var desc = directions.routes[0].legs[0];
-			event.transit_bike = {
+			event.transit_options.bike = {
 				duration: desc.duration.value / 60
 			}
 		}
@@ -84,7 +85,7 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 			console.log("Walking routes are empty :'(");
 		} else {
 			var desc = directions.routes[0].legs[0];
-			event.transit_walking = {
+			event.transit_options.walking = {
 				duration: desc.duration.value / 60
 			}
 		}

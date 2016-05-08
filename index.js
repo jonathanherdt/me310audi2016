@@ -146,21 +146,90 @@ io.on('connection', function (socket) {
 		for (var userID in users) {
 			if (userID == "undefined") continue;
 			oauth2Client.setCredentials(users[userID].tokens);
-			cal.getCalendarEventsForOneDay(oauth2Client, userID, data.day, users[userID].address, function (userID, events) {
+			cal.getCalendarEventsForOneDay(oauth2Client, userID, data.day, function (userID, events) {
 				if (events.length > 0) {
-					// add user information to the calendar before sending it to the clock
-					var calendar = {
-						events: events,
-						name: users[userID].name,
-						email: users[userID].email,
-						picture: users[userID].picture
-					};
-					//console.log(JSON.stringify(calendar.events, null, 4));
-					socket.emit('clock - calendar update', calendar);
+                    // add transit information to each events
+                    var eventsEnrichedWithTransit = 0;
+                    events.forEach(function(event) {
+                        maps.addTransitInformationToEvent(event, userID, users[userID].address, function() {
+                            eventsEnrichedWithTransit++;
+
+                            // once all events have been enriched with transit info, send them to the clock
+                            if (eventsEnrichedWithTransit == events.length) {
+                                // TODO pick the best transit option from the transit information that is now saved
+                                // TODO with each event and make another event out of it (so it's displayed on the clock)
+                                findOptimalTransitForEvents(events);
+                                createOptimalTransitEvents(events);
+
+                                // create a calendar object and add user information to it
+                                var calendar = {
+                                    events: events,
+                                    name: users[userID].name,
+                                    email: users[userID].email,
+                                    picture: users[userID].picture
+                                };
+
+                                //console.log(JSON.stringify(calendar.events, null, 4));
+                                socket.emit('clock - calendar update', calendar);
+                            }
+                        });
+                    })
 				}
 			});
 		}
 	});
+
+    /**
+     * Enrich each event with information about the optimal and second-best transit
+     * TODO for now it simply picks the fastest options
+     * @param events event-list
+     */
+    function findOptimalTransitForEvents(events) {
+        for (var i = 0; i < events.length; i++) {
+            var event = events[i];
+            var fastest, secondFastest;
+
+            // go through all transit options and find save the fastest and second fastest one
+            for (var key in event.transit_options) {
+                if (event.transit_options.hasOwnProperty(key)) {
+                    var option = event.transit_options[key];
+
+                    if (fastest == undefined) {
+                        fastest = {name: key, duration: option.duration};
+                        continue;
+                    }
+                    if (option.duration < fastest.duration) {
+                        secondFastest = {name: fastest.name, duration: fastest.duration};
+                        fastest = {name: key, duration: option.duration};
+                        continue;
+                    }
+                    if (secondFastest == undefined || option.duration < secondFastest.duration) {
+                        secondFastest = {name: key, duration: option.duration};
+                    }
+                }
+            }
+
+            // save the fastest and second fastest transit options with the event
+            if (fastest != undefined) {
+                events[i].optimizedTransit = {
+                    best: fastest,
+                    alternative: secondFastest
+                };
+            }
+        }
+    };
+
+    /**
+     * Given information about the best transit option for each event, create
+     * another event for the transit time itself so the clock displays it
+     * @param events event-list
+     */
+    function createOptimalTransitEvents(events) {
+        for (event in events) {
+
+        }
+    };
+
 });
 
 http.listen(8080, function () {
