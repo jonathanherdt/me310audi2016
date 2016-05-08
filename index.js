@@ -172,7 +172,7 @@ io.on('connection', function (socket) {
 									email: users[userID].email,
 									picture: users[userID].picture,
 									carSimulatorData: {
-										batteryLevel: batteryLevel;
+										batteryLevel: batteryLevel
 									}
 								};
 
