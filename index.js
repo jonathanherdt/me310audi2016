@@ -30,6 +30,10 @@ var scopes = [
 	'https://www.googleapis.com/auth/calendar'
 ];
 
+// car simulator data
+var batteryLevel = -1;
+
+
 // Make javascript and html files public so they are available on client side
 app.use('/js', express.static(__dirname + '/public/js'));
 app.use('/', express.static(__dirname + '/public'));
@@ -179,8 +183,11 @@ io.on('connection', function (socket) {
 		}
 	});
 
-	socket.on('my other event', function (data) {
-		console.log(data);
+	// Car Simulator updates:
+
+	socket.on('updateBattery', function (data) {
+		batteryLevel = data;
+		console.log('[Car Simulator Data] Battery Level: ' + batteryLevel);
 	});
 
 
