@@ -56,7 +56,7 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 			console.log("Transit routes are empty :'(");
 		} else {
 			var desc = directions.routes[0].legs[0];
-			event.transit_options.public = {
+			event.transit_options.subway = {
 				duration: desc.duration.value / 60,
 				arrival_time: new Date(Date.parse(desc.arrival_time.value + "000"))
 			}
@@ -71,7 +71,7 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 			console.log("Bike routes are empty :'(");
 		} else {
 			var desc = directions.routes[0].legs[0];
-			event.transit_options.bike = {
+			event.transit_options.bicycle = {
 				duration: desc.duration.value / 60
 			}
 		}

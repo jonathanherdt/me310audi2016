@@ -228,7 +228,7 @@ io.on('connection', function (socket) {
 
 			// save the fastest and second fastest transit options with the event
 			if (fastest != undefined) {
-				events[i].optimizedTransit = {
+				events[i].optimized_transit = {
 					best: fastest,
 					alternative: secondFastest
 				};
