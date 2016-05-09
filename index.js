@@ -1,3 +1,4 @@
+/* ------ NODE MODULES ------ */
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);
@@ -13,31 +14,30 @@ var googleCredentials = require('./credentials/key.json');
 var cal = require('./server/GoogleConnectors/googleCalendarConnector.js')(googleCal);
 var maps = require('./server/GoogleConnectors/googleMapsConnector.js');
 
-// Store user data
-storage.initSync();
-var users = storage.getItem('users');
-var redirect_uri = (process.env.NODE_ENV == 'production') ? 'http://mtin.de:8080/back' : 'http://localhost:8080/back'
-if (users == undefined) users = {};
-
-for (userId in users) {
-	console.log('loaded user ' + users[userId].email + ' ' + userId)
-}
-
-var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, redirect_uri);
-var scopes = [
-	'https://www.googleapis.com/auth/userinfo.email',
-	'https://www.googleapis.com/auth/userinfo.profile',
-	'https://www.googleapis.com/auth/calendar'
-];
-
-// car simulator data
-var batteryLevel = -1;
-
+/* ------ LOCAL VARIABLES AND SETTINGS ------ */
 
 // Make javascript and html files public so they are available on client side
 app.use('/js', express.static(__dirname + '/public/js'));
 app.use('/', express.static(__dirname + '/public'));
 
+// Prepare oauth2-client
+var redirect_uri = (process.env.NODE_ENV == 'production') ? 'http://mtin.de:8080/back' : 'http://localhost:8080/back';
+var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, redirect_uri);
+var scopes = [
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/calendar'
+];
+
+// Car simulator data
+var batteryLevel = -1;
+
+// At startup, restore user data 
+var users = {};
+init();
+
+
+/* ------ ROUTING ------ */
 // When the user gets back from the google authentication, display the connection page that gets updated dynamically (over sockets.io) once we received the calendar data
 app.get('/back', function (req, res) {
 	var code = req.query.code;
@@ -81,6 +81,7 @@ app.get('/back', function (req, res) {
 	res.sendFile(__dirname + '/public/back.html');
 });
 
+/* ------ SOCKET CONNECTION ------ */
 // A user connects over socket.io 
 io.on('connection', function (socket) {
 
@@ -186,16 +187,6 @@ io.on('connection', function (socket) {
 		}
 	});
 
-	// Car Simulator updates:
-
-	socket.on('updateBattery', function (data) {
-		batteryLevel = data;
-		console.log('[Car Simulator Data] Battery Level: ' + batteryLevel);
-	});
-
-
-
-
 	/**
 	 * Enrich each event with information about the optimal and second-best transit
 	 * TODO for now it simply picks the fastest options
@@ -246,9 +237,30 @@ io.on('connection', function (socket) {
 
 		}
 	};
+    
+    /* ------ CAR SIMULATOR REQUESTS ------ */
+
+	socket.on('updateBattery', function (data) {
+		batteryLevel = data;
+		console.log('[Car Simulator Data] Battery Level: ' + batteryLevel);
+	});
 
 });
+
+/* ------ START UP ------ */
+function init() {
+    // restore user data
+    storage.initSync();
+    users = storage.getItem('users');
+    for (userId in users) {
+        console.log('loaded user ' + users[userId].email + ' ' + userId)
+    }
+    
+    // for each user, either register change-notifications (wont work since we'd need a valid https address for that) OR set up pull-loop every x seconds 
+    
+}
 
 http.listen(8080, function () {
 	console.log('listening on ' + (process.env.NODE_ENV == 'production' ? 'http://mtin.de:8080/' : 'http://localhost:8080/'));
 });
+
