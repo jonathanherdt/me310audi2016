@@ -132,6 +132,10 @@ io.on('connection', function (socket) {
 		socket.emit('user list', stripped_users);
 	})
 
+	socket.on('delete user', function(userId) {
+		delete users[userId];
+	});
+
 	socket.on('get directions for event', function (latitude, longitude, eventData) {
 		// Get data for four different modes of transportation
 		maps.getDistanceToLocationFromCurrentPosition(latitude, longitude, 'driving', eventData, function (data) {
