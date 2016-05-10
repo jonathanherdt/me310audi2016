@@ -150,7 +150,7 @@ io.on('connection', function (socket) {
 		for (var userID in users) {
 			if (userID == "undefined") continue;
 			oauth2Client.setCredentials(users[userID].tokens);
-			cal.getCalendarEventsForOneDay(oauth2Client, userID, data.day, function (userID, events) {
+			cal.getCalendarEventsForTwoDays(oauth2Client, userID, data.day, function (userID, events) {
 				if (events.length > 0) {
 					// add transit information to each events
 					var eventsEnrichedWithTransit = 0;
@@ -161,9 +161,7 @@ io.on('connection', function (socket) {
 							// once all events have been enriched with transit info, send them to the clock
 							if (eventsEnrichedWithTransit == events.length) {
 								// TODO pick the best transit option from the transit information that is now saved
-								// TODO with each event and make another event out of it (so it's displayed on the clock)
 								findOptimalTransitForEvents(events);
-								createOptimalTransitEvents(events);
 
 								// create a calendar object and add user information to it
 								var calendar = {
@@ -225,17 +223,6 @@ io.on('connection', function (socket) {
 			}
 		}
 	};
-
-	/**
-	 * Given information about the best transit option for each event, create
-	 * another event for the transit time itself so the clock displays it
-	 * @param events event-list
-	 */
-	function createOptimalTransitEvents(events) {
-		for (event in events) {
-
-		}
-	};
     
     /* ------ CAR SIMULATOR REQUESTS ------ */
 
@@ -253,12 +240,20 @@ function init() {
     users = storage.getItem('users');
     for (userId in users) {
         console.log('loaded user ' + users[userId].email + ' ' + userId)
+
+        // update the calendar for each user
+        updateCalendarInformation(userId);
     }
 
     if (users == undefined) users = {};
-    
-    // for each user, either register change-notifications (wont work since we'd need a valid https address for that) OR set up pull-loop every x seconds 
-    
+}
+
+function updateCalendarInformation(userId) {
+    //console.log("updating calendar for " + userId);
+   // var calendar = G
+    setTimeout(function() {
+        updateCalendarInformation(userId);
+    }, 5000);
 }
 
 http.listen(8080, function () {
