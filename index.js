@@ -97,17 +97,21 @@ io.on('connection', function (socket) {
 		socket.emit('app - go to url', googleAuthUrl);
 	});
 
-	socket.on('check login state', function () {
-		if (!users[id] || !users[id].signedOn) {
-			console.log('request from not signed on user ' + id);
-			socket.emit('user not authenticated', id);
-			return;
-		}
+	function verifyLoggedOn(userId) {
+		if (users[userId] && users[userId].signedOn) return true;
 
+		console.log('request from not signed on user ' + userId);
+		socket.emit('user not authenticated', userId);
+		return false;
+	}
+
+	socket.on('check login state', function () {
+		if (!verifyLoggedOn(id)) return;
 		socket.emit('user authenticated', users[id]);
 	});
 
 	socket.on('get calendar', function () {
+		if (!verifyLoggedOn(id)) return;
 		oauth2Client.setCredentials(users[id].tokens)
 		console.log("get calendar");
 		cal.getOrderedFutureCalendarEvents(oauth2Client, function eventListReceived(events) {
