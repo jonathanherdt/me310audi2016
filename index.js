@@ -36,7 +36,6 @@ var batteryLevel = -1;
 var users = {};
 init();
 
-
 /* ------ ROUTING ------ */
 // When the user gets back from the google authentication, display the connection page that gets updated dynamically (over sockets.io) once we received the calendar data
 app.get('/back', function (req, res) {
@@ -255,6 +254,8 @@ function init() {
     for (userId in users) {
         console.log('loaded user ' + users[userId].email + ' ' + userId)
     }
+
+    if (users == undefined) users = {};
     
     // for each user, either register change-notifications (wont work since we'd need a valid https address for that) OR set up pull-loop every x seconds 
     
