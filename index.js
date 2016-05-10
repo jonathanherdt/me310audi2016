@@ -24,17 +24,17 @@ app.use('/', express.static(__dirname + '/public'));
 var redirect_uri = (process.env.NODE_ENV == 'production') ? 'http://mtin.de:8080/back' : 'http://localhost:8080/back';
 var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, redirect_uri);
 var scopes = [
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/calendar'
+	'https://www.googleapis.com/auth/userinfo.email',
+	'https://www.googleapis.com/auth/userinfo.profile',
+	'https://www.googleapis.com/auth/calendar'
 ];
-
-// Car simulator data
-var batteryLevel = -1;
 
 // At startup, restore user data 
 var users = {};
 init();
+
+// Clock connection
+var clockSocket;
 
 /* ------ ROUTING ------ */
 // When the user gets back from the google authentication, display the connection page that gets updated dynamically (over sockets.io) once we received the calendar data
@@ -50,6 +50,7 @@ app.get('/back', function (req, res) {
 
 		// Now tokens contains an access_token and an optional refresh_token. Save them.
 		users[user_id] = {};
+        users[user_id].calendar = [];
 		users[user_id].tokens = tokens;
 		oauth2Client.setCredentials(tokens);
 		// Get user mail and send it to the client
@@ -86,6 +87,9 @@ io.on('connection', function (socket) {
 
 	//JSON.stringify(users, null, 4)
 	var id = socket.handshake.query.id;
+
+    // save socket for clock
+    if (id === 'clock') clockSocket = socket;
 
 	socket.on('app - create new user', function () {
 		var googleAuthUrl = oauth2Client.generateAuthUrl({
@@ -158,98 +162,22 @@ io.on('connection', function (socket) {
 		for (var userID in users) {
 			if (userID == "undefined") continue;
 			oauth2Client.setCredentials(users[userID].tokens);
-			cal.getCalendarEventsForOneDay(oauth2Client, userID, data.day, function (userID, events) {
+			cal.getCalendarEventsForTwoDays(oauth2Client, userID, data.day, function (userID, events) {
 				if (events.length > 0) {
-					// add transit information to each events
-					var eventsEnrichedWithTransit = 0;
-					events.forEach(function(event) {
-						maps.addTransitInformationToEvent(event, userID, users[userID].address, function() {
-							eventsEnrichedWithTransit++;
-
-							// once all events have been enriched with transit info, send them to the clock
-							if (eventsEnrichedWithTransit == events.length) {
-								// TODO pick the best transit option from the transit information that is now saved
-								// TODO with each event and make another event out of it (so it's displayed on the clock)
-								findOptimalTransitForEvents(events);
-								createOptimalTransitEvents(events);
-
-								// create a calendar object and add user information to it
-								var calendar = {
-									events: events,
-									name: users[userID].name,
-									email: users[userID].email,
-									picture: users[userID].picture,
-									carSimulatorData: {
-										batteryLevel: batteryLevel
-									}
-								};
-
-								//console.log(JSON.stringify(calendar.events, null, 4));
-								socket.emit('clock - calendar update', calendar);
-							}
-						});
-					})
+                    createCalendarWithTransitInformation(userID, events, function calendarCreated(calendar) {
+                        //console.log(JSON.stringify(calendar.events, null, 4));
+                        socket.emit('clock - calendar update', calendar);
+                    });
 				}
 			});
 		}
 	});
-
-	/**
-	 * Enrich each event with information about the optimal and second-best transit
-	 * TODO for now it simply picks the fastest options
-	 * @param events event-list
-	 */
-	function findOptimalTransitForEvents(events) {
-		for (var i = 0; i < events.length; i++) {
-			var event = events[i];
-			var fastest, secondFastest;
-
-			// go through all transit options and find save the fastest and second fastest one
-			for (var key in event.transit_options) {
-				if (event.transit_options.hasOwnProperty(key)) {
-					var option = event.transit_options[key];
-
-					if (fastest == undefined) {
-						fastest = {name: key, duration: option.duration};
-						continue;
-					}
-					if (option.duration < fastest.duration) {
-						secondFastest = {name: fastest.name, duration: fastest.duration};
-						fastest = {name: key, duration: option.duration};
-						continue;
-					}
-					if (secondFastest == undefined || option.duration < secondFastest.duration) {
-						secondFastest = {name: key, duration: option.duration};
-					}
-				}
-			}
-
-			// save the fastest and second fastest transit options with the event
-			if (fastest != undefined) {
-				events[i].optimized_transit = {
-					best: fastest,
-					alternative: secondFastest
-				};
-			}
-		}
-	};
-
-	/**
-	 * Given information about the best transit option for each event, create
-	 * another event for the transit time itself so the clock displays it
-	 * @param events event-list
-	 */
-	function createOptimalTransitEvents(events) {
-		for (event in events) {
-
-		}
-	};
     
     /* ------ CAR SIMULATOR REQUESTS ------ */
 
 	socket.on('updateBattery', function (data) {
-		batteryLevel = data;
-		console.log('[Car Simulator Data] Battery Level: ' + batteryLevel);
+		console.log('[Car Simulator Data] Battery Level: ' + data);
+		clockSocket.emit('[Car Simulator Data] - Battery Update', data);
 	});
 
 });
@@ -261,13 +189,126 @@ function init() {
     users = storage.getItem('users');
     for (userId in users) {
         console.log('loaded user ' + users[userId].email + ' ' + userId)
+
+        // update the calendar for each user
+        updateCalendarInformation(userId);
     }
 
     if (users == undefined) users = {};
-    
-    // for each user, either register change-notifications (wont work since we'd need a valid https address for that) OR set up pull-loop every x seconds 
-    
 }
+
+function updateCalendarInformation(userId) {
+   // console.log("updating calendar for " + userId);
+
+    if (userId == "undefined") return;
+    oauth2Client.setCredentials(users[userId].tokens);
+    cal.getCalendarEventsForTwoDays(oauth2Client, userId, Date.now(), function (userId, events) {
+        if (users[userId].calendar.length == 0) {
+            users[userId].calendar = events;
+        } else if (calendarChanged(users[userId].calendar, events)) {
+            users[userId].calendar = events;
+            console.log("Calendar of " + users[userId].name + " changed");
+            createCalendarWithTransitInformation(userId, users[userId].calendar, function calendarCreated(calendar) {
+                if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+            });
+        }
+
+        // update calendar every 5 seconds
+        setTimeout(function() {
+            updateCalendarInformation(userId);
+        }, 5000);
+    });
+};
+
+/**
+ * Returns whether the two calenders passed into the function contain the same events
+ * @param oldCal
+ * @param newCal
+ * @returns {boolean}
+ */
+function calendarChanged(oldCal, newCal) {
+    if (oldCal.length!= newCal.length) return true;
+    for (var i = 0; i < oldCal.length; i++) {
+        var oldEvent = oldCal[i];
+        var matchingEventFound = false;
+        for (var j = 0; j < newCal.length; j++) {
+            var newEvent = newCal[j];
+            if (oldEvent.start.getTime() === newEvent.start.getTime() &&
+                oldEvent.end.getTime() === newEvent.end.getTime() &&
+                oldEvent.title == newEvent.title &&
+                oldEvent.location == newEvent.location) {
+                matchingEventFound = true;
+            }
+        };
+        if (matchingEventFound == false) return true;
+    }
+    return false;
+};
+
+function createCalendarWithTransitInformation(userID, events, callback) {
+    // add transit information to each events
+    var eventsEnrichedWithTransit = 0;
+    events.forEach(function(event) {
+        maps.addTransitInformationToEvent(event, userID, users[userID].address, function() {
+            eventsEnrichedWithTransit++;
+
+            // once all events have been enriched with transit info, send them to the clock
+            if (eventsEnrichedWithTransit == events.length) {
+                // TODO pick the best transit option from the transit information that is now saved
+                findOptimalTransitForEvents(events);
+
+                // create a calendar object and add user information to it
+                var calendar = {
+                    events: events,
+                    name: users[userID].name,
+                    email: users[userID].email,
+                    picture: users[userID].picture
+                };
+                callback(calendar);
+            }
+        });
+    });
+};
+
+/**
+ * Enrich each event with information about the optimal and second-best transit
+ * TODO for now it simply picks the fastest options
+ * @param events event-list
+ */
+function findOptimalTransitForEvents(events) {
+    for (var i = 0; i < events.length; i++) {
+        var event = events[i];
+        var fastest, secondFastest;
+
+        // go through all transit options and find save the fastest and second fastest one
+        for (var key in event.transit_options) {
+            if (event.transit_options.hasOwnProperty(key)) {
+                var option = event.transit_options[key];
+
+                if (fastest == undefined) {
+                    fastest = {name: key, duration: option.duration};
+                    continue;
+                }
+                if (option.duration < fastest.duration) {
+                    secondFastest = {name: fastest.name, duration: fastest.duration};
+                    fastest = {name: key, duration: option.duration};
+                    continue;
+                }
+                if (secondFastest == undefined || option.duration < secondFastest.duration) {
+                    secondFastest = {name: key, duration: option.duration};
+                }
+            }
+        }
+
+        // save the fastest and second fastest transit options with the event
+        if (fastest != undefined) {
+            events[i].optimized_transit = {
+                best: fastest,
+                alternative: secondFastest
+            };
+        }
+    }
+};
 
 http.listen(8080, function () {
 	console.log('listening on ' + (process.env.NODE_ENV == 'production' ? 'http://mtin.de:8080/' : 'http://localhost:8080/'));

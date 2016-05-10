@@ -39,23 +39,24 @@ module.exports = function (googleCalendar) {
 		});
 	}
 
-	module.getCalendarEventsForOneDay = function (auth, userID, day, callback) {
-		var todayMidnight = new Date(Date.parse(day));
+	module.getCalendarEventsForTwoDays = function (auth, userID, day, callback) {
+		var todayMidnight = new Date(day);
 		todayMidnight.setHours(0, 0, 0, 0);
-		var tomorrowMidnight = new Date(Date.parse(day));
-		tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
-		tomorrowMidnight.setHours(0, 0, 0, 0);
+		var dayAfterTomorrowMidnight = new Date(day);
+		dayAfterTomorrowMidnight.setDate(dayAfterTomorrowMidnight.getDate() + 2);
+		dayAfterTomorrowMidnight.setHours(0, 0, 0, 0);
 
 		googleCalendar.events.list({
 			auth: auth,
 			calendarId: 'primary',
 			timeMin: todayMidnight.toISOString(),
-			timeMax: tomorrowMidnight.toISOString(),
+			timeMax: dayAfterTomorrowMidnight.toISOString(),
 			singleEvents: true,
 			orderBy: 'startTime'
 		}, function (err, response) {
 			if (err) {
 				console.log('The API returned an error: ' + err);
+				return;
 			}
 			var events = response.items;
 			if (events.length == 0) {
