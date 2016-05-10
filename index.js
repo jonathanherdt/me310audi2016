@@ -254,10 +254,7 @@ function createCalendarWithTransitInformation(userID, events, callback) {
                     events: events,
                     name: users[userID].name,
                     email: users[userID].email,
-                    picture: users[userID].picture,
-                    carSimulatorData: {
-                        batteryLevel: batteryLevel
-                    }
+                    picture: users[userID].picture
                 };
                 callback(calendar);
             }
