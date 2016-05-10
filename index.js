@@ -24,13 +24,10 @@ app.use('/', express.static(__dirname + '/public'));
 var redirect_uri = (process.env.NODE_ENV == 'production') ? 'http://mtin.de:8080/back' : 'http://localhost:8080/back';
 var oauth2Client = new OAuth2(googleCredentials.web.client_id, googleCredentials.web.client_secret, redirect_uri);
 var scopes = [
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/calendar'
+	'https://www.googleapis.com/auth/userinfo.email',
+	'https://www.googleapis.com/auth/userinfo.profile',
+	'https://www.googleapis.com/auth/calendar'
 ];
-
-// Car simulator data
-var batteryLevel = -1;
 
 // At startup, restore user data 
 var users = {};
@@ -80,12 +77,18 @@ app.get('/back', function (req, res) {
 	res.sendFile(__dirname + '/public/back.html');
 });
 
+var clock_socket = null;
+
 /* ------ SOCKET CONNECTION ------ */
 // A user connects over socket.io 
 io.on('connection', function (socket) {
 
 	//JSON.stringify(users, null, 4)
 	var id = socket.handshake.query.id;
+
+	if (id == 'clock'){
+		clock_socket = socket;
+	}
 
 	socket.on('app - create new user', function () {
 		var googleAuthUrl = oauth2Client.generateAuthUrl({
@@ -168,10 +171,7 @@ io.on('connection', function (socket) {
 									events: events,
 									name: users[userID].name,
 									email: users[userID].email,
-									picture: users[userID].picture,
-									carSimulatorData: {
-										batteryLevel: batteryLevel
-									}
+									picture: users[userID].picture
 								};
 
 								//console.log(JSON.stringify(calendar.events, null, 4));
@@ -223,37 +223,37 @@ io.on('connection', function (socket) {
 			}
 		}
 	};
-    
-    /* ------ CAR SIMULATOR REQUESTS ------ */
+
+	/* ------ CAR SIMULATOR REQUESTS ------ */
 
 	socket.on('updateBattery', function (data) {
-		batteryLevel = data;
-		console.log('[Car Simulator Data] Battery Level: ' + batteryLevel);
+		console.log('[Car Simulator Data] Battery Level: ' + data);
+		clock_socket.emit('[Car Simulator Data] - Battery Update', data);
 	});
 
 });
 
 /* ------ START UP ------ */
 function init() {
-    // restore user data
-    storage.initSync();
-    users = storage.getItem('users');
-    for (userId in users) {
-        console.log('loaded user ' + users[userId].email + ' ' + userId)
+	// restore user data
+	storage.initSync();
+	users = storage.getItem('users');
+	for (userId in users) {
+		console.log('loaded user ' + users[userId].email + ' ' + userId)
 
-        // update the calendar for each user
-        updateCalendarInformation(userId);
-    }
+		// update the calendar for each user
+		updateCalendarInformation(userId);
+	}
 
-    if (users == undefined) users = {};
+	if (users == undefined) users = {};
 }
 
 function updateCalendarInformation(userId) {
-    //console.log("updating calendar for " + userId);
-   // var calendar = G
-    setTimeout(function() {
-        updateCalendarInformation(userId);
-    }, 5000);
+	//console.log("updating calendar for " + userId);
+	// var calendar = G
+	setTimeout(function() {
+		updateCalendarInformation(userId);
+	}, 5000);
 }
 
 http.listen(8080, function () {
