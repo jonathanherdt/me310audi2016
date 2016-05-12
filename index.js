@@ -90,7 +90,7 @@ app.get('/back', function (req, res) {
             console.log('new user ' + users[user_id].name + ' authenticated');
 
             // Save the calendar events for today and tomorrow for each user and start the updating cycle
-            users[user_id].calendar = [];
+            users[user_id].events = [];
             updateCalendarInformation(user_id);
 
             // store the user data
@@ -197,17 +197,11 @@ io.on('connection', function (socket) {
 		// the clock requests the calendar for a specific day for all logged in users
 		for (var userID in users) {
 			if (userID == "undefined") continue;
-			var calendar = users[userID].calendar;
-			if (calendar.length > 0) socket.emit('clock - calendar update', calendar);
-			/*oauth2Client.setCredentials(users[userID].tokens);
-			cal.getCalendarEventsForTwoDays(oauth2Client, userID, data.day, function (userID, events) {
-				if (events.length > 0) {
-                    createCalendarWithTransitInformation(userID, events, function calendarCreated(calendar) {
-                        //console.log(JSON.stringify(calendar.events, null, 4));
-                        socket.emit('clock - calendar update', calendar);
-                    });
-				}
-			});*/
+			var events = users[userID].events;
+			if (events.length > 0) {
+				var calendar = createCalendarObjectFromEvents(events, userID);
+				socket.emit('clock - calendar update', calendar);
+			}
 		}
 	});
     
@@ -246,16 +240,17 @@ function updateCalendarInformation(userId) {
     if (userId == "undefined" || users[userId] == undefined) return;
     oauth2Client.setCredentials(users[userId].tokens);
     cal.getCalendarEventsForTwoDays(oauth2Client, userId, Date.now(), function (userId, events) {
-        if (users[userId].calendar !== undefined && users[userId].calendar.length == 0) {
-			createCalendarWithTransitInformation(userId, users[userId].calendar, function calendarCreated(calendar) {
-				users[userId].calendar = calendar;
+		// user does not have a calendar yet
+        if (users[userId].events !== undefined && users[userId].events.length == 0) {
+			createCalendarWithTransitInformation(userId, events, function calendarCreated(calendar) {
+				users[userId].events = calendar.events;
 				storage.setItem('users', users);
 				if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
 			});
-        } else if (calendarChanged(users[userId].calendar, events)) {
+        } else if (calendarChanged(users[userId].events, events)) {
             console.log("Calendar of " + users[userId].name + " changed");
-            createCalendarWithTransitInformation(userId, users[userId].calendar, function calendarCreated(calendar) {
-				users[userId].calendar = calendar;
+            createCalendarWithTransitInformation(userId, events, function calendarCreated(calendar) {
+				users[userId].events = calendar.events;
 				storage.setItem('users', users);
                 if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
             });
@@ -302,7 +297,7 @@ function calendarChanged(oldCal, newCal) {
 function createCalendarWithTransitInformation(userID, events, callback) {
     // add transit information to each events
     var eventsEnrichedWithTransit = 0;
-    events.forEach(function(event) {
+	events.forEach(function(event) {
         maps.addTransitInformationToEvent(event, userID, users[userID].address, function() {
             eventsEnrichedWithTransit++;
 
@@ -312,17 +307,22 @@ function createCalendarWithTransitInformation(userID, events, callback) {
                 findOptimalTransitForEvents(events);
 
                 // create a calendar object and add user information to it
-                var calendar = {
-                    events: events,
-                    name: users[userID].name,
-                    email: users[userID].email,
-                    picture: users[userID].picture
-                };
+                var calendar = createCalendarObjectFromEvents(events, userID);
                 callback(calendar);
             }
         });
     });
 };
+
+function createCalendarObjectFromEvents(events, userID) {
+	var calendar = {
+		events: events,
+		name: users[userID].name,
+		email: users[userID].email,
+		picture: users[userID].picture
+	};
+	return calendar;
+}
 
 /**
  * Enrich each event with information about the optimal and second-best transit
