@@ -50,9 +50,9 @@ app.get('/back', function (req, res) {
 
 		// Now tokens contains an access_token and an optional refresh_token. Save them.
 		users[user_id] = {};
-        users[user_id].calendar = [];
 		users[user_id].tokens = tokens;
 		oauth2Client.setCredentials(tokens);
+
 		// Get user mail and send it to the client
 		userinfo.userinfo.get({
 			userId: 'me',
@@ -67,13 +67,17 @@ app.get('/back', function (req, res) {
 			users[user_id].name = response.name;
 			users[user_id].picture = response.picture;
 			users[user_id].signedOn = true;
-
 			// the user's home address needs to be saved as well
 			// TODO: specify that address in the app, send it to the server and turn it into lat/long there
 			users[user_id].address = {lat: '52.392508', long: '13.123017'};
 
-			console.log('new user ' + users[user_id].name + ' authenticated');
+            console.log('new user ' + users[user_id].name + ' authenticated');
 
+            // Save the calendar events for today and tomorrow for each user and start the updating cycle
+            users[user_id].calendar = [];
+            updateCalendarInformation(user_id);
+
+            // store the user data
 			storage.setItem('users', users);
 		});
 	});
@@ -205,6 +209,9 @@ function updateCalendarInformation(userId) {
     cal.getCalendarEventsForTwoDays(oauth2Client, userId, Date.now(), function (userId, events) {
         if (users[userId].calendar.length == 0) {
             users[userId].calendar = events;
+			createCalendarWithTransitInformation(userId, users[userId].calendar, function calendarCreated(calendar) {
+				if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+			});
         } else if (calendarChanged(users[userId].calendar, events)) {
             users[userId].calendar = events;
             console.log("Calendar of " + users[userId].name + " changed");
