@@ -31,6 +31,7 @@ var scopes = [
 
 // At startup, restore user data 
 var users = {};
+var temporaryUsers = {};
 init();
 
 // Clock and simulator connection
@@ -61,33 +62,43 @@ app.get('/back', function (req, res) {
 	oauth2Client.getToken(code, function (err, tokens) {
 		if (err) {
 			console.log('The oauth2Client getToken returned an error: ' + err);
+			delete temporaryUsers[user_id];
 			return;
 		}
 
-		// Now tokens contains an access_token and an optional refresh_token. Save them.
-		users[user_id] = {};
-		users[user_id].tokens = tokens;
+		
 		oauth2Client.setCredentials(tokens);
 
-		// Get user mail and send it to the client
+		// Get user mail and if succesful add user to user database
 		userinfo.userinfo.get({
 			userId: 'me',
 			auth: oauth2Client
 		}, function (err, response) {
 			if (err) {
 				console.log('The userinfo API returned an error: ' + err);
+				delete temporaryUsers[user_id];
 				return;
 			}
-			// once this succeeds we assume a successful login and save some userdata
+
+			if (!temporaryUsers[user_id]) {
+				console.log("error creating user, oauth successful but dont have saved socket/traveloptions");
+				delete temporaryUsers[user_id];
+				return;
+			}
+
+			// once this succeeds we assume a successful login and save some userdata plus access tokens
+			users[user_id] = {};
+			users[user_id].tokens = tokens;
 			users[user_id].email = response.email;
 			users[user_id].name = response.name;
 			users[user_id].picture = response.picture;
-			users[user_id].signedOn = true;
+			users[user_id].travelOptions = temporaryUsers[user_id].travelOptions;
+
 			// the user's home address needs to be saved as well
 			// TODO: specify that address in the app, send it to the server and turn it into lat/long there
 			users[user_id].address = {lat: '52.392508', long: '13.123017'};
 
-            console.log('new user ' + users[user_id].name + ' authenticated');
+            console.log('new user ' + users[user_id].name + ' (' + user_id + ') authenticated');
 
             // Save the calendar events for today and tomorrow for each user and start the updating cycle
             users[user_id].events = [];
@@ -95,6 +106,10 @@ app.get('/back', function (req, res) {
 
             // store the user data
 			storage.setItem('users', users);
+
+			// notify client of successful login
+			temporaryUsers[user_id].socket.emit('new user authenticated', users[user_id]);
+			delete temporaryUsers[user_id];
 		});
 	});
 
@@ -123,7 +138,8 @@ io.on('connection', function (socket) {
 	// TODO (test user not defined yet-check)
 	// TODO get transit info when user logged in from app
 
-	socket.on('app - create new user', function () {
+	socket.on('app - create new user', function (travelOptions) {
+		temporaryUsers[id] = {'socket': socket, 'travelOptions': travelOptions};
 		var googleAuthUrl = oauth2Client.generateAuthUrl({
 			access_type: 'offline', // 'online' (default) or 'offline' (gets refresh_token)
 			scope: scopes,
@@ -134,7 +150,7 @@ io.on('connection', function (socket) {
 	});
 
 	function verifyLoggedOn(userId) {
-		if (users[userId] && users[userId].signedOn) return true;
+		if (users[userId]) return true;
 
 		console.log('request from not signed on user ' + userId);
 		socket.emit('user not authenticated', userId);
