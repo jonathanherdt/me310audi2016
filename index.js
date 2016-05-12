@@ -247,16 +247,16 @@ function updateCalendarInformation(userId) {
     oauth2Client.setCredentials(users[userId].tokens);
     cal.getCalendarEventsForTwoDays(oauth2Client, userId, Date.now(), function (userId, events) {
         if (users[userId].calendar !== undefined && users[userId].calendar.length == 0) {
-            users[userId].calendar = events;
-			storage.setItem('users', users);
 			createCalendarWithTransitInformation(userId, users[userId].calendar, function calendarCreated(calendar) {
+				users[userId].calendar = calendar;
+				storage.setItem('users', users);
 				if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
 			});
         } else if (calendarChanged(users[userId].calendar, events)) {
-            users[userId].calendar = events;
-			storage.setItem('users', users);
             console.log("Calendar of " + users[userId].name + " changed");
             createCalendarWithTransitInformation(userId, users[userId].calendar, function calendarCreated(calendar) {
+				users[userId].calendar = calendar;
+				storage.setItem('users', users);
                 if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
             });
         }
