@@ -281,8 +281,12 @@ function calendarChanged(oldCal, newCal) {
 			var matchingEventFound = false;
 			for (var j = 0; j < newCal.length; j++) {
 				var newEvent = newCal[j];
-				if (oldEvent.start.getTime() === newEvent.start.getTime() &&
-					oldEvent.end.getTime() === newEvent.end.getTime() &&
+				var startOld = Date.parse(oldEvent.start);
+				var endOld = Date.parse(oldEvent.end);
+				var startNew = Date.parse(newEvent.start);
+				var endNew = Date.parse(newEvent.end);
+				if (startOld === startNew &&
+					endOld === endNew &&
 					oldEvent.title == newEvent.title &&
 					oldEvent.location == newEvent.location) {
 					matchingEventFound = true;
