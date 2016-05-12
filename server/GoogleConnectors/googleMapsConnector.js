@@ -6,6 +6,8 @@ var host = 'https://maps.googleapis.com/',
 
 var maps_key = 'AIzaSyBOtSjTEZWmOrMF1x9Tcp0YIalpOo_hX8A';
 
+var count = 0;
+
 exports.getDistanceToLocationFromCurrentPosition = function (latitude, longitude, mode, eventData, callback) {
 	var departure_time = Math.floor(new Date(eventData.start.dateTime).getTime()) / 1000;
 	var request_url = host + path_maps + path_distance + '?origin=' + latitude + ',' + longitude + '&destination=' + eventData.location + '&departure_time=' + departure_time + '&mode=' + mode + '&key=' + maps_key;
@@ -37,6 +39,8 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 
 	request(car_request_url, function (error, response, body) {
 		requestsDone++;
+		count++;
+		console.log("Maps request - " + count);
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
 			console.log("Car routes are empty :'(");
@@ -51,6 +55,8 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 
 	request(transit_request_url, function (error, response, body) {
 		requestsDone++;
+		count++;
+		console.log("Maps request - " + count);
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
 			console.log("Transit routes are empty :'(");
@@ -66,6 +72,8 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 
 	request(bike_request_url, function (error, response, body) {
 		requestsDone++;
+		count++;
+		console.log("Maps request - " + count);
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
 			console.log("Bike routes are empty :'(");
@@ -80,6 +88,8 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 
 	request(walk_request_url, function (error, response, body) {
 		requestsDone++;
+		count++;
+		console.log("Maps request - " + count);
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
 			console.log("Walking routes are empty :'(");
