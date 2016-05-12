@@ -36,6 +36,21 @@ init();
 // Clock connection
 var clockSocket;
 
+// improved logging
+
+console.logCopy = console.log.bind(console);
+console.log = function() {
+    if (arguments.length)
+    {
+        var timestamp = '[' + (new Date).toISOString() + '] ';
+        if (arguments.length > 1) {
+        	this.logCopy(timestamp, arguments);
+        } else {
+        	this.logCopy(timestamp, arguments[0]);
+        }
+    }
+};
+
 /* ------ ROUTING ------ */
 // When the user gets back from the google authentication, display the connection page that gets updated dynamically (over sockets.io) once we received the calendar data
 app.get('/back', function (req, res) {
@@ -117,7 +132,7 @@ io.on('connection', function (socket) {
 	socket.on('get calendar', function () {
 		if (!verifyLoggedOn(id)) return;
 		oauth2Client.setCredentials(users[id].tokens)
-		console.log("get calendar");
+		console.log("get calendar from " + users[id].email + " " + id);
 		cal.getOrderedFutureCalendarEvents(oauth2Client, function eventListReceived(events) {
 			// Once events are received, use sockets.io to send them to the frontend, 
 			socket.emit('next event', events[0]);
@@ -137,6 +152,7 @@ io.on('connection', function (socket) {
 	})
 
 	socket.on('delete user', function(userId) {
+		console.log("deleting user " + (users[userId] ? users[userId].name : "<unknown>") + " " + userId);
 		delete users[userId];
 	});
 
@@ -200,7 +216,7 @@ function init() {
 function updateCalendarInformation(userId) {
    // console.log("updating calendar for " + userId);
 
-    if (userId == "undefined") return;
+    if (userId == "undefined" || users[userId] == undefined) return;
     oauth2Client.setCredentials(users[userId].tokens);
     cal.getCalendarEventsForTwoDays(oauth2Client, userId, Date.now(), function (userId, events) {
         if (users[userId].calendar.length == 0) {
