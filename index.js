@@ -107,6 +107,8 @@ io.on('connection', function (socket) {
 	//JSON.stringify(users, null, 4)
 	var id = socket.handshake.query.id;
 
+	console.log('socket with id ' + id + ' connected from ' + socket.request.connection.remoteAddress + '. (' + (users[id] ? users[id].email : '<unknown>') + ')');
+
     // save socket for clock
     if (id === 'clock') clockSocket = socket;
 
@@ -144,6 +146,7 @@ io.on('connection', function (socket) {
 	})
 
 	socket.on('app - get users', function () {
+		console.log("command 'app - get users' from " + id);
 		var stripped_users = {};
 		Object.keys(users).forEach(function (entry) {
 			stripped_users[entry] = {
@@ -158,6 +161,7 @@ io.on('connection', function (socket) {
 	socket.on('delete user', function(userId) {
 		console.log("deleting user " + (users[userId] ? users[userId].name : "<unknown>") + " " + userId);
 		delete users[userId];
+		storage.setItem('users', users);
 	});
 
 	socket.on('get directions for event', function (latitude, longitude, eventData) {
