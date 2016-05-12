@@ -116,8 +116,9 @@ io.on('connection', function (socket) {
 	} else if (id === 'simulator') {
 		simulatorSocket = socket;
 	} else {
-		if (!users[id]) users[id] = {};
-		users[id].socket = socket;
+		// TODO this does not work like that yet
+		//if (!users[id]) users[id] = {};
+		//users[id].socket = socket;
 	}
 	// TODO (test user not defined yet-check)
 	// TODO get transit info when user logged in from app
