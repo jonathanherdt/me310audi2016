@@ -33,8 +33,7 @@ var scopes = [
 var users = {};
 init();
 
-// Clock connection
-var clockSocket;
+var clockSocket, simulatorSocket;
 
 // improved logging
 
@@ -111,6 +110,9 @@ io.on('connection', function (socket) {
 
     // save socket for clock
     if (id === 'clock') clockSocket = socket;
+
+	// save socket for simulator
+    if (id === 'simulator') simulatorSocket = socket;
 
 	socket.on('app - create new user', function () {
 		var googleAuthUrl = oauth2Client.generateAuthUrl({
@@ -203,6 +205,11 @@ io.on('connection', function (socket) {
 		console.log('[Car Simulator Data] Battery Level: ' + data);
 		clockSocket.emit('[Car Simulator Data] - Battery Update', data);
 	});
+	
+	socket.on('updateOil', function (data) {
+		console.log('[Car Simulator Data] Oil Level: ' + data);
+		clockSocket.emit('[Car Simulator Data] - Oil Update', data);
+	});
 
 });
 
@@ -227,7 +234,7 @@ function updateCalendarInformation(userId) {
     if (userId == "undefined" || users[userId] == undefined) return;
     oauth2Client.setCredentials(users[userId].tokens);
     cal.getCalendarEventsForTwoDays(oauth2Client, userId, Date.now(), function (userId, events) {
-        if (users[userId].calendar.length == 0) {
+        if (users[userId].calendar !== undefined && users[userId].calendar.length == 0) {
             users[userId].calendar = events;
 			createCalendarWithTransitInformation(userId, users[userId].calendar, function calendarCreated(calendar) {
 				if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
@@ -254,21 +261,23 @@ function updateCalendarInformation(userId) {
  * @returns {boolean}
  */
 function calendarChanged(oldCal, newCal) {
-    if (oldCal.length!= newCal.length) return true;
-    for (var i = 0; i < oldCal.length; i++) {
-        var oldEvent = oldCal[i];
-        var matchingEventFound = false;
-        for (var j = 0; j < newCal.length; j++) {
-            var newEvent = newCal[j];
-            if (oldEvent.start.getTime() === newEvent.start.getTime() &&
-                oldEvent.end.getTime() === newEvent.end.getTime() &&
-                oldEvent.title == newEvent.title &&
-                oldEvent.location == newEvent.location) {
-                matchingEventFound = true;
-            }
-        };
-        if (matchingEventFound == false) return true;
-    }
+    if (oldCal !== undefined && oldCal.length!= newCal.length) return true;
+    if (oldCal !== undefined) {
+		for (var i = 0; i < oldCal.length; i++) {
+			var oldEvent = oldCal[i];
+			var matchingEventFound = false;
+			for (var j = 0; j < newCal.length; j++) {
+				var newEvent = newCal[j];
+				if (oldEvent.start.getTime() === newEvent.start.getTime() &&
+					oldEvent.end.getTime() === newEvent.end.getTime() &&
+					oldEvent.title == newEvent.title &&
+					oldEvent.location == newEvent.location) {
+					matchingEventFound = true;
+				}
+			};
+			if (matchingEventFound == false) return true;
+		}
+	}
     return false;
 };
 
