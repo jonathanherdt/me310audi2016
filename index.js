@@ -33,7 +33,9 @@ var scopes = [
 var users = {};
 init();
 
-var clockSocket, simulatorSocket;
+// Clock and simulator connection
+var clockSocket;
+var simulatorSocket;
 
 // improved logging
 
@@ -108,11 +110,17 @@ io.on('connection', function (socket) {
 
 	console.log('socket with id ' + id + ' connected from ' + socket.request.connection.remoteAddress + '. (' + (users[id] ? users[id].email : '<unknown>') + ')');
 
-    // save socket for clock
-    if (id === 'clock') clockSocket = socket;
-
-	// save socket for simulator
-    if (id === 'simulator') simulatorSocket = socket;
+    // save sockets
+    if (id === 'clock') {
+		clockSocket = socket;
+	} else if (id === 'simulator') {
+		simulatorSocket = socket;
+	} else {
+		if (!users[id]) users[id] = {};
+		users[id].socket = socket;
+	}
+	// TODO (test user not defined yet-check)
+	// TODO get transit info when user logged in from app
 
 	socket.on('app - create new user', function () {
 		var googleAuthUrl = oauth2Client.generateAuthUrl({
@@ -164,6 +172,7 @@ io.on('connection', function (socket) {
 		console.log("deleting user " + (users[userId] ? users[userId].name : "<unknown>") + " " + userId);
 		delete users[userId];
 		storage.setItem('users', users);
+		// TODO send to clock
 	});
 
 	socket.on('get directions for event', function (latitude, longitude, eventData) {
@@ -187,7 +196,9 @@ io.on('connection', function (socket) {
 		// the clock requests the calendar for a specific day for all logged in users
 		for (var userID in users) {
 			if (userID == "undefined") continue;
-			oauth2Client.setCredentials(users[userID].tokens);
+			var calendar = users[userID].calendar;
+			if (calendar.length > 0) socket.emit('clock - calendar update', calendar);
+			/*oauth2Client.setCredentials(users[userID].tokens);
 			cal.getCalendarEventsForTwoDays(oauth2Client, userID, data.day, function (userID, events) {
 				if (events.length > 0) {
                     createCalendarWithTransitInformation(userID, events, function calendarCreated(calendar) {
@@ -195,7 +206,7 @@ io.on('connection', function (socket) {
                         socket.emit('clock - calendar update', calendar);
                     });
 				}
-			});
+			});*/
 		}
 	});
     
@@ -236,11 +247,13 @@ function updateCalendarInformation(userId) {
     cal.getCalendarEventsForTwoDays(oauth2Client, userId, Date.now(), function (userId, events) {
         if (users[userId].calendar !== undefined && users[userId].calendar.length == 0) {
             users[userId].calendar = events;
+			storage.setItem('users', users);
 			createCalendarWithTransitInformation(userId, users[userId].calendar, function calendarCreated(calendar) {
 				if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
 			});
         } else if (calendarChanged(users[userId].calendar, events)) {
             users[userId].calendar = events;
+			storage.setItem('users', users);
             console.log("Calendar of " + users[userId].name + " changed");
             createCalendarWithTransitInformation(userId, users[userId].calendar, function calendarCreated(calendar) {
                 if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
