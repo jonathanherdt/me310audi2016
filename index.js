@@ -81,7 +81,7 @@ app.get('/back', function (req, res) {
 			}
 
 			if (!temporaryUsers[user_id]) {
-				console.log("error creating user, oauth successful but dont have saved socket/traveloptions");
+				console.log("error creating user, oauth successful but dont have saved socket/travelPreferences");
 				delete temporaryUsers[user_id];
 				return;
 			}
@@ -92,7 +92,7 @@ app.get('/back', function (req, res) {
 			users[user_id].email = response.email;
 			users[user_id].name = response.name;
 			users[user_id].picture = response.picture;
-			users[user_id].travelOptions = temporaryUsers[user_id].travelOptions;
+			users[user_id].travelPreferences = temporaryUsers[user_id].travelPreferences;
 
 			// the user's home address needs to be saved as well
 			// TODO: specify that address in the app, send it to the server and turn it into lat/long there
@@ -138,8 +138,8 @@ io.on('connection', function (socket) {
 	// TODO (test user not defined yet-check)
 	// TODO get transit info when user logged in from app
 
-	socket.on('app - create new user', function (travelOptions) {
-		temporaryUsers[id] = {'socket': socket, 'travelOptions': travelOptions};
+	socket.on('app - create new user', function (travelPreferences) {
+		temporaryUsers[id] = {'socket': socket, 'travelPreferences': travelPreferences};
 		var googleAuthUrl = oauth2Client.generateAuthUrl({
 			access_type: 'offline', // 'online' (default) or 'offline' (gets refresh_token)
 			scope: scopes,
@@ -189,7 +189,7 @@ io.on('connection', function (socket) {
 		console.log("deleting user " + (users[userId] ? users[userId].name : "<unknown>") + " " + userId);
 		delete users[userId];
 		storage.setItem('users', users);
-		// TODO send to clock
+		socket.emit('clock - user deleted', users[userId].name);
 	});
 
 	socket.on('get directions for event', function (latitude, longitude, eventData) {
@@ -314,13 +314,13 @@ function createCalendarWithTransitInformation(userID, events, callback) {
     // add transit information to each events
     var eventsEnrichedWithTransit = 0;
 	events.forEach(function(event) {
-        maps.addTransitInformationToEvent(event, userID, users[userID].address, function() {
+        maps.addTransitInformationToEvent(event, users[userID].address, function() {
             eventsEnrichedWithTransit++;
 
             // once all events have been enriched with transit info, send them to the clock
             if (eventsEnrichedWithTransit == events.length) {
                 // TODO pick the best transit option from the transit information that is now saved
-                findOptimalTransitForEvents(events);
+                findOptimalTransitForEvents(events, userID);
 
                 // create a calendar object and add user information to it
                 var calendar = createCalendarObjectFromEvents(events, userID);
@@ -345,13 +345,30 @@ function createCalendarObjectFromEvents(events, userID) {
  * TODO for now it simply picks the fastest options
  * @param events event-list
  */
-function findOptimalTransitForEvents(events) {
+function findOptimalTransitForEvents(events, userID) {
     for (var i = 0; i < events.length; i++) {
         var event = events[i];
-        var fastest, secondFastest;
+        //var fastest, secondFastest;
+		var firstChoice, secondChoice;
 
-        // go through all transit options and find save the fastest and second fastest one
-        for (var key in event.transit_options) {
+		// first choice
+		switch (users[userID].travelPreferences[0]) {
+			case "car": if (event.transit_options.car) firstChoice = {name: "car", duration: event.transit_options.car.duration}; break;
+			case "publictransport": if (event.transit_options.subway) firstChoice = {name: "subway", duration: event.transit_options.subway.duration }; break;
+			case "bike": if (event.transit_options.bicycle) firstChoice = {name: "bicycle", duration: event.transit_options.bicycle.duration }; break;
+			case "walk": if (event.transit_options.walking) firstChoice = {name: "walk", duration: event.transit_options.walking.duration }; break;
+		}
+
+		// second choice
+		switch (users[userID].travelPreferences[1]) {
+			case "car": if (event.transit_options.car) secondChoice = {name: "car", duration: event.transit_options.car.duration}; break;
+			case "publictransport": if (event.transit_options.subway) secondChoice = {name: "subway", duration: event.transit_options.subway.duration }; break;
+			case "bike": if (event.transit_options.bicycle) secondChoice = {name: "bicycle", duration: event.transit_options.bicycle.duration }; break;
+			case "walk": if (event.transit_options.walking) secondChoice = {name: "walk", duration: event.transit_options.walking.duration }; break;
+		}
+
+        // go through all transit options and chose the preferred transit options
+		/*for (var key in event.transit_options) {
             if (event.transit_options.hasOwnProperty(key)) {
                 var option = event.transit_options[key];
 
@@ -368,13 +385,13 @@ function findOptimalTransitForEvents(events) {
                     secondFastest = {name: key, duration: option.duration};
                 }
             }
-        }
+        }*/
 
-        // save the fastest and second fastest transit options with the event
-        if (fastest != undefined) {
+        // save the transit options with the event
+        if (firstChoice != undefined) {
             events[i].optimized_transit = {
-                best: fastest,
-                alternative: secondFastest
+                best: firstChoice,
+                alternative: secondChoice
             };
         }
     }
