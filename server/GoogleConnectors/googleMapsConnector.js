@@ -24,7 +24,7 @@ exports.getDistanceToLocationFromCurrentPosition = function (latitude, longitude
 	});
 }
 
-exports.addTransitInformationToEvent = function (event, userID, origin, callback) {
+exports.addTransitInformationToEvent = function (event, origin, callback) {
 	var arrival_time = Math.floor(new Date(event.start).getTime()) / 1000;
     var latitude = origin.lat,longitude = origin.long;
 
@@ -74,13 +74,17 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 		requestsDone++;
 		count++;
 		console.log("Maps request - " + count);
-		directions = JSON.parse(body);
-		if (directions.routes[0] == null) {
-			console.log("Bike routes are empty :'(");
+		if (error) {
+			console.log("Error: " + error);
 		} else {
-			var desc = directions.routes[0].legs[0];
-			event.transit_options.bicycle = {
-				duration: desc.duration.value / 60
+			directions = JSON.parse(body);
+			if (directions.routes[0] == null) {
+				console.log("Bike routes are empty :'(");
+			} else {
+				var desc = directions.routes[0].legs[0];
+				event.transit_options.bicycle = {
+					duration: desc.duration.value / 60
+				}
 			}
 		}
 		if (requestsDone == 4) callback(event);
