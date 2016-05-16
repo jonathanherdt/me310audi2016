@@ -346,7 +346,7 @@ function createCalendarObjectFromEvents(events, userID) {
  * @param events event-list
  */
 function findOptimalTransitForEvents(events, userID) {
-    for (var i = 0; i < events.length; i++) {
+    for (var i = 0; i < events.length && users[userID].travelPreferences; i++) {
         var event = events[i];
         //var fastest, secondFastest;
 		var firstChoice, secondChoice;
