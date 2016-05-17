@@ -37,7 +37,7 @@ module.exports = function (googleCalendar) {
 				}
 			}
 		});
-	}
+	},
 
 	module.getCalendarEventsForTwoDays = function (auth, userID, day, callback) {
 		var todayMidnight = new Date(day);
@@ -73,7 +73,10 @@ module.exports = function (googleCalendar) {
 							start: new Date(Date.parse(event.start.dateTime)),
 							end: new Date(Date.parse(event.end.dateTime)),
 							location: event.location,
-							title: event.summary
+							title: event.summary,
+							id: event.id,
+							category: getEventCategory(event.colorId),
+							userSelectedTransitOption: ""
 						};
 						cleanedUpEvents.push(cleanEvent);
 					}
@@ -86,7 +89,21 @@ module.exports = function (googleCalendar) {
 				callback(userID, cleanedUpEvents);
 			}
 		});
-	}
+	},
+
+		getEventCategory = function(color) {
+			switch (color) {
+				case ("9") : // blue
+					return "work";
+				case ("10"): // green
+					return "sports";
+				case ("11"): //red
+					return "leisure";
+				default:
+					return "";
+			}
+		}
+
 
 	return module;
 };
