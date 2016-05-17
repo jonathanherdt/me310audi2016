@@ -187,9 +187,9 @@ io.on('connection', function (socket) {
 
 	socket.on('delete user', function(userId) {
 		console.log("deleting user " + (users[userId] ? users[userId].name : "<unknown>") + " " + userId);
+		socket.emit('clock - user deleted', users[userId].name);
 		delete users[userId];
 		storage.setItem('users', users);
-		socket.emit('clock - user deleted', users[userId].name);
 	});
 
 	socket.on('get directions for event', function (latitude, longitude, eventData) {
