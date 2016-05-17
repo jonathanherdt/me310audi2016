@@ -214,23 +214,25 @@ io.on('connection', function (socket) {
 		for (var userID in users) {
 			if (userID == "undefined") continue;
 			var events = users[userID].events;
-			if (events.length > 0) {
+			if (events !== undefined && events.length > 0) {
 				var calendar = createCalendarObjectFromEvents(events, userID);
 				socket.emit('clock - calendar update', calendar);
+			} else {
+				console.log('ERROR: Clock requests calendars while no events exists on the server!')
 			}
 		}
 	});
     
     /* ------ CAR SIMULATOR REQUESTS ------ */
 
-	socket.on('updateBattery', function (data) {
-		console.log('[Car Simulator Data] Battery Level: ' + data);
-		clockSocket.emit('[Car Simulator Data] - Battery Update', data);
-	});
-	
-	socket.on('updateOil', function (data) {
-		console.log('[Car Simulator Data] Oil Level: ' + data);
-		clockSocket.emit('[Car Simulator Data] - Oil Update', data);
+	socket.on('simulatorUpdate', function (data) {
+		console.log('[Car Simulator Data] eventName: ' + data['eventName']);
+		console.log('[Car Simulator Data] payLoad: ' + data['payLoad']);
+		if (clockSocket !== undefined) {
+			clockSocket.emit('[Car Simulator Data] - Battery Update', data);
+		} else {
+			console.log('Received Car Simulator Data before Socket with ClockApp opened. Throwing away data!')
+		}
 	});
 
 });

@@ -34,4 +34,8 @@ node_modules
 Google Testing Credentials.txt
 key.json
 
+# IDE (e.g. Pycharm)
 .idea/
+
+# persisteny
+persist/
