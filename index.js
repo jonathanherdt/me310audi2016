@@ -226,10 +226,10 @@ io.on('connection', function (socket) {
     /* ------ CAR SIMULATOR REQUESTS ------ */
 
 	socket.on('simulatorUpdate', function (data) {
-		console.log('[Car Simulator Data] eventName: ' + data['eventName']);
+		console.log('[Car Simulator Data] key: ' + data['key']);
 		console.log('[Car Simulator Data] payLoad: ' + data['payLoad']);
 		if (clockSocket !== undefined) {
-			clockSocket.emit('[Car Simulator Data] - Battery Update', data);
+			clockSocket.emit('[Car Simulator Data] -  Update', data);
 		} else {
 			console.log('Received Car Simulator Data before Socket with ClockApp opened. Throwing away data!')
 		}
