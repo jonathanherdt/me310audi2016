@@ -258,26 +258,11 @@ function updateCalendarInformation(userId) {
     if (userId == "undefined" || users[userId] == undefined) return;
     oauth2Client.setCredentials(users[userId].tokens);
     cal.getCalendarEventsForTwoDays(oauth2Client, userId, Date.now(), function (userId, events) {
-		// user does not have a calendar yet
-        if (users[userId].events !== undefined && users[userId].events.length == 0) {
-			createCalendarWithTransitInformation(userId, events, function calendarCreated(calendar) {
-				users[userId].events = calendar.events;
-				storage.setItem('users', users);
-				if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
-			});
-        } else if (calendarChanged(users[userId].events, events)) {
-            console.log("Calendar of " + users[userId].name + " changed");
-            createCalendarWithTransitInformation(userId, events, function calendarCreated(calendar) {
-				users[userId].events = calendar.events;
-				storage.setItem('users', users);
-                if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
-            });
-        }
-
-        // update calendar every 5 seconds
-        setTimeout(function() {
-            updateCalendarInformation(userId);
-        }, 5000);
+		checkForAndUpdateChanges(userId, events, function done() {
+			setTimeout(function() {
+				updateCalendarInformation(userId);
+			}, 5000);
+		});
     });
 };
 
@@ -312,16 +297,136 @@ function calendarChanged(oldCal, newCal) {
     return false;
 };
 
+function checkForAndUpdateChanges(userID, newCal, callback) {
+	var events = users[userID].events;
+	if (events == undefined) return;
+
+	var eventsToUpdate, eventsUpdated;
+
+	loop: for (var i = events.length - 1; i >= 0; i--) {
+		var event = events[i];
+
+		// find matching event in new cal
+		for (var j = newCal.length - 1; j >= 0; j--) {
+			var compareEvent = newCal[j];
+			if (event.id == compareEvent.id) {
+				// found event, check for changes
+				var startOld = Date.parse(event.start);
+				var endOld = Date.parse(event.end);
+				var startNew = Date.parse(compareEvent.start);
+				var endNew = Date.parse(compareEvent.end);
+				if (startOld != startNew ||
+					endOld != endNew ||
+					event.title != compareEvent.title ||
+					event.location != compareEvent.location) {
+
+					// event changed, overwrite it but keep transit changes from clock
+					var oldTransitPreference = event.userSelectedTransitOption;
+					events[i] = {
+						start: compareEvent.start,
+						end: compareEvent.end,
+						location: compareEvent.location,
+						title: compareEvent.title,
+						id: compareEvent.id,
+						userSelectedTransitOption: oldTransitPreference
+					};
+					eventsToUpdate++;
+
+					// update transit info of that event and send it to clock
+					maps.addTransitInformationToEvent(events[i], userID, users[userID].address, function done(event, userID) {
+						eventsUpdated++;
+						console.log("Event of user " + users[userID].name + " changed: " + JSON.stringify(event));
+
+						addOptimalTransitToEvent(event, userID);
+						var calendar = createCalendarObjectFromEvents(users[userID].events, userID);
+						storage.setItem('users', users);
+						if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+					});
+
+					// go to the next event and delete this event from the new events
+					newCal.splice(j, 1);
+					continue loop;
+				} else {
+					// no changes found, move on to next event
+					newCal.splice(j, 1);
+					continue loop;
+				}
+			}
+		}
+		// if we reach this point, then we did not find the old event in the updated event list -> it no longer exists
+		// and has to be deleted
+		console.log("Event of user " + users[userID].name + " was deleted: " + events[i].title);
+		events.splice(i, 1);
+		storage.setItem('users', users);
+		var calendar = createCalendarObjectFromEvents(events, userID);
+		if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+	}
+
+	// if there are still events in the new calendar at this point, these are new events - add them
+	if (newCal.length > 0) {
+		loop: for (var i = 0; i < newCal.length; i++) {
+			eventsToUpdate++;
+
+			// find correct position in events
+			for (var j = 0; j < events.length; j++) {
+				var currentEvent = events[j];
+				if (Date.parse(currentEvent.start) > Date.parse(newCal[i].start)) {
+					events.splice(j, 0, newCal[i]);
+					maps.addTransitInformationToEvent(events[j], userID, users[userID].address, function done(event, userID) {
+						eventsUpdated++;
+
+						console.log("Event of user " + users[userID].name + " is new: " + JSON.stringify(event));
+						console.log("The full event list now looks like: " + JSON.stringify(users[userID].events));
+
+						addOptimalTransitToEvent(event, userID);
+						var calendar = createCalendarObjectFromEvents(users[userID].events, userID);
+						storage.setItem('users', users);
+						if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+					});
+					continue loop;
+				}
+			}
+
+			// if we reach this point, the event has to be added at the end of the day
+			events.push(newCal[i]);
+			maps.addTransitInformationToEvent(events[events.length - 1], userID, users[userID].address, function done(event, userID) {
+				eventsUpdated++;
+
+				console.log("Event of user " + users[userID].name + " is new: " + JSON.stringify(event));
+				console.log("The full event list now looks like: " + JSON.stringify(users[userID].events));
+
+				addOptimalTransitToEvent(event, userID);
+				var calendar = createCalendarObjectFromEvents(users[userID].events, userID);
+				storage.setItem('users', users);
+				if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+			});
+		}
+	}
+
+	while (eventsUpdated < eventsToUpdate) {
+		sleep(10);
+	}
+	callback();
+};
+
+function sleep(milliseconds) {
+	var start = new Date().getTime();
+	for (var i = 0; i < 1e7; i++) {
+		if ((new Date().getTime() - start) > milliseconds){
+			break;
+		}
+	}
+}
+
 function createCalendarWithTransitInformation(userID, events, callback) {
     // add transit information to each events
     var eventsEnrichedWithTransit = 0;
 	events.forEach(function(event) {
-        maps.addTransitInformationToEvent(event, users[userID].address, function() {
+        maps.addTransitInformationToEvent(event, userID, users[userID].address, function(event, userID) {
             eventsEnrichedWithTransit++;
 
             // once all events have been enriched with transit info, send them to the clock
             if (eventsEnrichedWithTransit == events.length) {
-                // TODO pick the best transit option from the transit information that is now saved
                 findOptimalTransitForEvents(events, userID);
 
                 // create a calendar object and add user information to it
@@ -349,54 +454,99 @@ function createCalendarObjectFromEvents(events, userID) {
  */
 function findOptimalTransitForEvents(events, userID) {
     for (var i = 0; i < events.length && users[userID].travelPreferences; i++) {
-        var event = events[i];
-        //var fastest, secondFastest;
-		var firstChoice, secondChoice;
-
-		// first choice
-		switch (users[userID].travelPreferences[0]) {
-			case "car": if (event.transit_options.car) firstChoice = {name: "car", duration: event.transit_options.car.duration}; break;
-			case "publictransport": if (event.transit_options.subway) firstChoice = {name: "subway", duration: event.transit_options.subway.duration }; break;
-			case "bike": if (event.transit_options.bicycle) firstChoice = {name: "bicycle", duration: event.transit_options.bicycle.duration }; break;
-			case "walk": if (event.transit_options.walking) firstChoice = {name: "walk", duration: event.transit_options.walking.duration }; break;
-		}
-
-		// second choice
-		switch (users[userID].travelPreferences[1]) {
-			case "car": if (event.transit_options.car) secondChoice = {name: "car", duration: event.transit_options.car.duration}; break;
-			case "publictransport": if (event.transit_options.subway) secondChoice = {name: "subway", duration: event.transit_options.subway.duration }; break;
-			case "bike": if (event.transit_options.bicycle) secondChoice = {name: "bicycle", duration: event.transit_options.bicycle.duration }; break;
-			case "walk": if (event.transit_options.walking) secondChoice = {name: "walk", duration: event.transit_options.walking.duration }; break;
-		}
-
-        // go through all transit options and chose the preferred transit options
-		/*for (var key in event.transit_options) {
-            if (event.transit_options.hasOwnProperty(key)) {
-                var option = event.transit_options[key];
-
-                if (fastest == undefined) {
-                    fastest = {name: key, duration: option.duration};
-                    continue;
-                }
-                if (option.duration < fastest.duration) {
-                    secondFastest = {name: fastest.name, duration: fastest.duration};
-                    fastest = {name: key, duration: option.duration};
-                    continue;
-                }
-                if (secondFastest == undefined || option.duration < secondFastest.duration) {
-                    secondFastest = {name: key, duration: option.duration};
-                }
-            }
-        }*/
-
-        // save the transit options with the event
-        if (firstChoice != undefined) {
-            events[i].optimized_transit = {
-                best: firstChoice,
-                alternative: secondChoice
-            };
-        }
+		var event = events[i];
+		addOptimalTransitToEvent(event, userID);
     }
+};
+
+function addOptimalTransitToEvent(event, userID) {
+	//var fastest, secondFastest;
+	var firstChoice, secondChoice;
+
+	if (event.userSelectedTransitOption && event.userSelectedTransitOption != "") {
+		if (event.userSelectedTransitOption == "car" && event.transit_options.car) firstChoice = {
+			name: "car",
+			duration: event.transit_options.car.duration
+		};
+		if (event.userSelectedTransitOption == "bus" && event.transit_options.subway) firstChoice = {
+			name: "subway",
+			duration: event.transit_options.subway.duration
+		};
+		if (event.userSelectedTransitOption == "bicycle" && event.transit_options.bicycle) firstChoice = {
+			name: "bicycle",
+			duration: event.transit_options.bicycle.duration
+		};
+		if (event.userSelectedTransitOption == "walk" && event.transit_options.walking) firstChoice = {
+			name: "walk",
+			duration: event.transit_options.walking.duration
+		};
+	} else {
+		// if the main choise has not been overwritten on the clock, use the user's first choice
+		switch (users[userID].travelPreferences[0]) {
+			case "car":
+				if (event.transit_options.car) firstChoice = {
+					name: "car",
+					duration: event.transit_options.car.duration
+				};
+				break;
+			case "publictransport":
+				if (event.transit_options.subway) firstChoice = {
+					name: "subway",
+					duration: event.transit_options.subway.duration
+				};
+				break;
+			case "bike":
+				if (event.transit_options.bicycle) firstChoice = {
+					name: "bicycle",
+					duration: event.transit_options.bicycle.duration
+				};
+				break;
+			case "walk":
+				if (event.transit_options.walking) firstChoice = {
+					name: "walk",
+					duration: event.transit_options.walking.duration
+				};
+				break;
+		}
+	}
+
+	// second choice
+	switch (users[userID].travelPreferences[1]) {
+		case "car": if (event.transit_options.car) secondChoice = {name: "car", duration: event.transit_options.car.duration}; break;
+		case "publictransport": if (event.transit_options.subway) secondChoice = {name: "subway", duration: event.transit_options.subway.duration }; break;
+		case "bike": if (event.transit_options.bicycle) secondChoice = {name: "bicycle", duration: event.transit_options.bicycle.duration }; break;
+		case "walk": if (event.transit_options.walking) secondChoice = {name: "walk", duration: event.transit_options.walking.duration }; break;
+	}
+
+	// go through all transit options and chose the preferred transit options
+	/*for (var key in event.transit_options) {
+	 if (event.transit_options.hasOwnProperty(key)) {
+	 var option = event.transit_options[key];
+
+	 if (fastest == undefined) {
+	 fastest = {name: key, duration: option.duration};
+	 continue;
+	 }
+	 if (option.duration < fastest.duration) {
+	 secondFastest = {name: fastest.name, duration: fastest.duration};
+	 fastest = {name: key, duration: option.duration};
+	 continue;
+	 }
+	 if (secondFastest == undefined || option.duration < secondFastest.duration) {
+	 secondFastest = {name: key, duration: option.duration};
+	 }
+	 }
+	 }*/
+
+	// save the transit options with the event
+	if (firstChoice != undefined) {
+		event.optimized_transit = {
+			best: firstChoice,
+			alternative: secondChoice
+		};
+	}
+
+	return event;
 };
 
 http.listen(8080, function () {

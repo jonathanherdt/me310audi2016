@@ -24,7 +24,7 @@ exports.getDistanceToLocationFromCurrentPosition = function (latitude, longitude
 	});
 }
 
-exports.addTransitInformationToEvent = function (event, origin, callback) {
+exports.addTransitInformationToEvent = function (event, userID, origin, callback) {
 	var arrival_time = Math.floor(new Date(event.start).getTime()) / 1000;
     var latitude = origin.lat,longitude = origin.long;
 
@@ -43,14 +43,14 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 		console.log("Maps request - " + count);
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
-			console.log("Car routes are empty :'(");
+			console.log("Car routes are empty :'( " + car_request_url);
 		} else {
 			var desc = directions.routes[0].legs[0];
 			event.transit_options.car = {};
 			event.transit_options.car.duration = desc.duration.value / 60;
 			if (desc.duration_in_traffic !== undefined) event.transit_options.car.duration_with_traffic = desc.duration_in_traffic.value / 60;
 		}
-		if (requestsDone == 4) callback(event);
+		if (requestsDone == 4) callback(event, userID);
 	});
 
 	request(transit_request_url, function (error, response, body) {
@@ -59,7 +59,7 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 		console.log("Maps request - " + count);
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
-			console.log("Transit routes are empty :'(");
+			console.log("Transit routes are empty :'( " + transit_request_url);
 		} else {
 			var desc = directions.routes[0].legs[0];
 			event.transit_options.subway = {
@@ -67,7 +67,7 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 				arrival_time: new Date(Date.parse(desc.arrival_time.value + "000"))
 			}
 		}
-		if (requestsDone == 4) callback(event);
+		if (requestsDone == 4) callback(event, userID);
 	});
 
 	request(bike_request_url, function (error, response, body) {
@@ -79,7 +79,7 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 		} else {
 			directions = JSON.parse(body);
 			if (directions.routes[0] == null) {
-				console.log("Bike routes are empty :'(");
+				console.log("Bike routes are empty :'( " + bike_request_url);
 			} else {
 				var desc = directions.routes[0].legs[0];
 				event.transit_options.bicycle = {
@@ -87,7 +87,7 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 				}
 			}
 		}
-		if (requestsDone == 4) callback(event);
+		if (requestsDone == 4) callback(event, userID);
 	});
 
 	request(walk_request_url, function (error, response, body) {
@@ -96,13 +96,13 @@ exports.addTransitInformationToEvent = function (event, origin, callback) {
 		console.log("Maps request - " + count);
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
-			console.log("Walking routes are empty :'(");
+			console.log("Walking routes are empty :'( " + walk_request_url);
 		} else {
 			var desc = directions.routes[0].legs[0];
 			event.transit_options.walking = {
 				duration: desc.duration.value / 60
 			}
 		}
-		if (requestsDone == 4) callback(event);
+		if (requestsDone == 4) callback(event, userID);
 	});
 }
