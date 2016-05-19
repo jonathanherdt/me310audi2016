@@ -222,6 +222,19 @@ io.on('connection', function (socket) {
 			}
 		}
 	});
+
+	socket.on('clock - event updated', function(data) {
+		console.log("Transit for event got updated on clock: " + JSON.stringify(data.event));
+		for (userID in users) {
+			if (users.hasOwnProperty(userID) && users[userID].name == data.name) {
+				users[userID].events.forEach(function(event) {
+					if (event.id == data.event.id) {
+						event.userSelectedTransitOption = data.event.userSelectedTransitOption;
+					}
+				});
+			}
+		}
+	});
     
     /* ------ CAR SIMULATOR REQUESTS ------ */
 
@@ -468,7 +481,7 @@ function addOptimalTransitToEvent(event, userID) {
 			name: "car",
 			duration: event.transit_options.car.duration
 		};
-		if (event.userSelectedTransitOption == "bus" && event.transit_options.subway) firstChoice = {
+		if (event.userSelectedTransitOption == "subway" && event.transit_options.subway) firstChoice = {
 			name: "subway",
 			duration: event.transit_options.subway.duration
 		};
@@ -476,7 +489,7 @@ function addOptimalTransitToEvent(event, userID) {
 			name: "bicycle",
 			duration: event.transit_options.bicycle.duration
 		};
-		if (event.userSelectedTransitOption == "walk" && event.transit_options.walking) firstChoice = {
+		if (event.userSelectedTransitOption == "walking" && event.transit_options.walking) firstChoice = {
 			name: "walk",
 			duration: event.transit_options.walking.duration
 		};
