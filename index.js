@@ -280,11 +280,17 @@ function updateCalendarInformation(userId) {
     if (userId == "undefined" || users[userId] == undefined) return;
     oauth2Client.setCredentials(users[userId].tokens);
     cal.getCalendarEventsForTwoDays(oauth2Client, userId, dateToday, function (userId, events) {
-		checkForAndUpdateChanges(userId, events, function done() {
+		if (events == null) {
 			setTimeout(function() {
 				updateCalendarInformation(userId);
-			}, 5000);
-		});
+			}, 1000);
+		} else {
+			checkForAndUpdateChanges(userId, events, function done() {
+				setTimeout(function () {
+					updateCalendarInformation(userId);
+				}, 5000);
+			});
+		}
     });
 };
 

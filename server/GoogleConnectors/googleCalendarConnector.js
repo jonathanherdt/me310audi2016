@@ -40,6 +40,11 @@ module.exports = function (googleCalendar) {
 	},
 
 	module.getCalendarEventsForTwoDays = function (auth, userID, day, callback) {
+		if (!day) {
+			callback(userID, null);
+			return;
+		}
+
 		var todayMidnight = new Date(day);
 		todayMidnight.setHours(0, 0, 0, 0);
 		var dayAfterTomorrowMidnight = new Date(day);
