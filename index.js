@@ -240,9 +240,7 @@ io.on('connection', function (socket) {
 			if (events !== undefined && events.length > 0) {
 				var calendar = createCalendarObjectFromEvents(events, userID);
 				socket.emit('clock - calendar update', calendar);
-			} else {
-				console.log('ERROR: Clock requests calendars while no events exists on the server!')
-			}
+			} 
 		}
 	});
 
@@ -424,13 +422,17 @@ function getEventOrigin(userID, i) {
 	var origin;
 	var events = users[userID].events;
 	var event = events[i];
-	var eventBefore;
 
 	if (i == 0) {
 		origin = users[userID].address;
 	} else {
-		eventBefore = events[i - 1];
-		if (eventBefore.start.getDay() != event.start.getDay() || event.start - eventBefore.end > 3 * 60 * 60 * 1000) {
+		var eventBefore = events[i - 1];
+
+		var eventStart = new Date(Date.parse(event.start));
+		var eventBeforeStart = new Date(Date.parse(eventBefore.start));
+		var eventBeforeEnd = new Date(Date.parse(eventBefore.end));
+
+		if (eventBeforeStart.getDay() != eventStart.getDay() || eventStart.getTime() - eventBeforeEnd.getTime() > 3 * 60 * 60 * 1000) {
 			origin = users[userID].address;
 		} else {
 			origin = eventBefore.location;
