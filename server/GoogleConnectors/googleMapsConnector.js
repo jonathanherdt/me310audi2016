@@ -63,9 +63,9 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 		} else {
 			var desc = directions.routes[0].legs[0];
 			event.transit_options.subway = {
-				duration: desc.duration.value / 60,
-				arrival_time: new Date(Date.parse(desc.arrival_time.value + "000"))
-			}
+				duration: desc.duration.value / 60
+				//arrival_time: new Date(Date.parse(desc.arrival_time.value + "000"))
+			};
 		}
 		if (requestsDone == 4) callback(event, userID);
 	});

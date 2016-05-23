@@ -96,7 +96,7 @@ app.get('/back', function (req, res) {
 
 			// the user's home address needs to be saved as well
 			// TODO: specify that address in the app, send it to the server and turn it into lat/long there
-			users[user_id].address = {lat: '52.392508', long: '13.123017'};
+			users[user_id].address = {lat: '37.423', long: '-122.171'};;
 
             console.log('new user ' + users[user_id].name + ' (' + user_id + ') authenticated');
 
@@ -197,7 +197,7 @@ io.on('connection', function (socket) {
 		users[id].travelPreferences = travelPreferences;
 
 		storage.setItem('users', users);
-	})
+	});
 
 	socket.on('get directions for event', function (latitude, longitude, eventData) {
 		// Get data for four different modes of transportation
