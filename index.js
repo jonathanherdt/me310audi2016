@@ -32,6 +32,7 @@ var scopes = [
 // At startup, restore user data 
 var users = {};
 var temporaryUsers = {};
+var dateToday;
 init();
 
 // Clock and simulator connection
@@ -219,6 +220,7 @@ io.on('connection', function (socket) {
 	socket.on('clock - request all calendars', function (data) {
 		// the clock requests the calendar for a specific day for all logged in users
 		for (var userID in users) {
+			dateToday = data.day;
 			if (userID == "undefined") continue;
 			var events = users[userID].events;
 			if (events !== undefined && events.length > 0) {
@@ -263,7 +265,7 @@ function init() {
     storage.initSync();
     users = storage.getItem('users');
     for (userId in users) {
-        console.log('loaded user ' + users[userId].email + ' ' + userId)
+        console.log('loaded user ' + users[userId].email + ' ' + userId);
 
         // update the calendar for each user
         updateCalendarInformation(userId);
@@ -277,7 +279,7 @@ function updateCalendarInformation(userId) {
 
     if (userId == "undefined" || users[userId] == undefined) return;
     oauth2Client.setCredentials(users[userId].tokens);
-    cal.getCalendarEventsForTwoDays(oauth2Client, userId, Date.now(), function (userId, events) {
+    cal.getCalendarEventsForTwoDays(oauth2Client, userId, dateToday, function (userId, events) {
 		checkForAndUpdateChanges(userId, events, function done() {
 			setTimeout(function() {
 				updateCalendarInformation(userId);
@@ -441,8 +443,8 @@ function sleep(milliseconds) {
 function createCalendarWithTransitInformation(userID, events, callback) {
     // add transit information to each events
     var eventsEnrichedWithTransit = 0;
-	events.forEach(function(event) {
-        maps.addTransitInformationToEvent(event, userID, users[userID].address, function(event, userID) {
+	events.forEach(function(event, index) {
+		maps.addTransitInformationToEvent(event, userID, users[userID].address, function(event, userID) {
             eventsEnrichedWithTransit++;
 
             // once all events have been enriched with transit info, send them to the clock
@@ -465,11 +467,10 @@ function createCalendarObjectFromEvents(events, userID) {
 		picture: users[userID].picture
 	};
 	return calendar;
-}
+};
 
 /**
  * Enrich each event with information about the optimal and second-best transit
- * TODO for now it simply picks the fastest options
  * @param events event-list
  */
 function findOptimalTransitForEvents(events, userID) {
@@ -537,26 +538,6 @@ function addOptimalTransitToEvent(event, userID) {
 		case "bike": if (event.transit_options.bicycle) secondChoice = {name: "bicycle", duration: event.transit_options.bicycle.duration }; break;
 		case "walk": if (event.transit_options.walking) secondChoice = {name: "walk", duration: event.transit_options.walking.duration }; break;
 	}
-
-	// go through all transit options and chose the preferred transit options
-	/*for (var key in event.transit_options) {
-	 if (event.transit_options.hasOwnProperty(key)) {
-	 var option = event.transit_options[key];
-
-	 if (fastest == undefined) {
-	 fastest = {name: key, duration: option.duration};
-	 continue;
-	 }
-	 if (option.duration < fastest.duration) {
-	 secondFastest = {name: fastest.name, duration: fastest.duration};
-	 fastest = {name: key, duration: option.duration};
-	 continue;
-	 }
-	 if (secondFastest == undefined || option.duration < secondFastest.duration) {
-	 secondFastest = {name: key, duration: option.duration};
-	 }
-	 }
-	 }*/
 
 	// save the transit options with the event
 	if (firstChoice != undefined) {
