@@ -216,9 +216,22 @@ io.on('connection', function (socket) {
 		});
 	});
 
+	socket.on('app - get calendar', function(date) {
+		if (!verifyLoggedOn(id)) return;
+		var events = users[id].events;
+		if (events == undefined || events.length == 0) {
+			console.log('ERROR: app requests calendars while no events exists on the server!');
+			return;
+		}
+		dateToday = date.day;
+		var calendar = createCalendarObjectFromEvents(events, id);
+		socket.emit('app - calendar', calendar);
+	});
+
 	/* ------ CLOCK REQUESTS ------ */
 	socket.on('clock - request all calendars', function (data) {
 		// the clock requests the calendar for a specific day for all logged in users
+		// watch out: if this changes, please also update socket.on 'app - get calendar'
 		for (var userID in users) {
 			dateToday = data.day;
 			if (userID == "undefined") continue;
