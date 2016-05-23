@@ -188,7 +188,7 @@ io.on('connection', function (socket) {
 
 	socket.on('delete user', function(userId) {
 		console.log("deleting user " + (users[userId] ? users[userId].name : "<unknown>") + " " + userId);
-		socket.emit('clock - user deleted', users[userId].name);
+		clockSocket.emit('clock - user deleted', users[userId].name);
 		delete users[userId];
 		storage.setItem('users', users);
 	});
@@ -230,10 +230,11 @@ io.on('connection', function (socket) {
 
 	/* ------ CLOCK REQUESTS ------ */
 	socket.on('clock - request all calendars', function (data) {
+		dateToday = data.day;
+
 		// the clock requests the calendar for a specific day for all logged in users
 		// watch out: if this changes, please also update socket.on 'app - get calendar'
 		for (var userID in users) {
-			dateToday = data.day;
 			if (userID == "undefined") continue;
 			var events = users[userID].events;
 			if (events !== undefined && events.length > 0) {
@@ -307,37 +308,6 @@ function updateCalendarInformation(userId) {
     });
 };
 
-/**
- * Returns whether the two calenders passed into the function contain the same events
- * @param oldCal
- * @param newCal
- * @returns {boolean}
- */
-function calendarChanged(oldCal, newCal) {
-    if (oldCal !== undefined && oldCal.length!= newCal.length) return true;
-    if (oldCal !== undefined) {
-		for (var i = 0; i < oldCal.length; i++) {
-			var oldEvent = oldCal[i];
-			var matchingEventFound = false;
-			for (var j = 0; j < newCal.length; j++) {
-				var newEvent = newCal[j];
-				var startOld = Date.parse(oldEvent.start);
-				var endOld = Date.parse(oldEvent.end);
-				var startNew = Date.parse(newEvent.start);
-				var endNew = Date.parse(newEvent.end);
-				if (startOld === startNew &&
-					endOld === endNew &&
-					oldEvent.title == newEvent.title &&
-					oldEvent.location == newEvent.location) {
-					matchingEventFound = true;
-				}
-			};
-			if (matchingEventFound == false) return true;
-		}
-	}
-    return false;
-};
-
 function checkForAndUpdateChanges(userID, newCal, callback) {
 	var events = users[userID].events;
 	if (events == undefined) return;
@@ -374,7 +344,7 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 					eventsToUpdate++;
 
 					// update transit info of that event and send it to clock
-					maps.addTransitInformationToEvent(events[i], userID, users[userID].address, function done(event, userID) {
+					maps.addTransitInformationToEvent(events[i], userID, getEventOrigin(userID, i), function done(event, userID) {
 						eventsUpdated++;
 						console.log("Event of user " + users[userID].name + " changed: " + JSON.stringify(event));
 
@@ -413,7 +383,7 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 				var currentEvent = events[j];
 				if (Date.parse(currentEvent.start) > Date.parse(newCal[i].start)) {
 					events.splice(j, 0, newCal[i]);
-					maps.addTransitInformationToEvent(events[j], userID, users[userID].address, function done(event, userID) {
+					maps.addTransitInformationToEvent(events[j], userID, getEventOrigin(userID, j), function done(event, userID) {
 						eventsUpdated++;
 
 						console.log("Event of user " + users[userID].name + " is new: " + JSON.stringify(event));
@@ -430,7 +400,7 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 
 			// if we reach this point, the event has to be added at the end of the day
 			events.push(newCal[i]);
-			maps.addTransitInformationToEvent(events[events.length - 1], userID, users[userID].address, function done(event, userID) {
+			maps.addTransitInformationToEvent(events[events.length - 1], userID, getEventOrigin(userID, events.length - 1), function done(event, userID) {
 				eventsUpdated++;
 
 				console.log("Event of user " + users[userID].name + " is new: " + JSON.stringify(event));
@@ -450,6 +420,26 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 	callback();
 };
 
+function getEventOrigin(userID, i) {
+	var origin;
+	var events = users[userID].events;
+	var event = events[i];
+	var eventBefore;
+
+	if (i == 0) {
+		origin = users[userID].address;
+	} else {
+		eventBefore = events[i - 1];
+		if (eventBefore.start.getDay() != event.start.getDay() || event.start - eventBefore.end > 3 * 60 * 60 * 1000) {
+			origin = users[userID].address;
+		} else {
+			origin = eventBefore.location;
+		}
+	}
+	console.log("Going to " + event.title + " at " + event.location + " from " + JSON.stringify(origin));
+	return origin;
+};
+
 function sleep(milliseconds) {
 	var start = new Date().getTime();
 	for (var i = 0; i < 1e7; i++) {
@@ -457,25 +447,6 @@ function sleep(milliseconds) {
 			break;
 		}
 	}
-}
-
-function createCalendarWithTransitInformation(userID, events, callback) {
-    // add transit information to each events
-    var eventsEnrichedWithTransit = 0;
-	events.forEach(function(event, index) {
-		maps.addTransitInformationToEvent(event, userID, users[userID].address, function(event, userID) {
-            eventsEnrichedWithTransit++;
-
-            // once all events have been enriched with transit info, send them to the clock
-            if (eventsEnrichedWithTransit == events.length) {
-                findOptimalTransitForEvents(events, userID);
-
-                // create a calendar object and add user information to it
-                var calendar = createCalendarObjectFromEvents(events, userID);
-                callback(calendar);
-            }
-        });
-    });
 };
 
 function createCalendarObjectFromEvents(events, userID) {

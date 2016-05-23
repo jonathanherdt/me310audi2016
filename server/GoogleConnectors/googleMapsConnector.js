@@ -26,12 +26,18 @@ exports.getDistanceToLocationFromCurrentPosition = function (latitude, longitude
 
 exports.addTransitInformationToEvent = function (event, userID, origin, callback) {
 	var arrival_time = Math.floor(new Date(event.start).getTime()) / 1000;
-    var latitude = origin.lat,longitude = origin.long;
+    //var latitude = origin.lat,longitude = origin.long;
+	var originString;
+	if (origin.lat && origin.long) {
+		originString = origin.lat + ", " + origin.long;
+	} else {
+		originString = origin;
+	}
 
-	var car_request_url = host + path_maps + path_distance + '?origin=' + latitude + ',' + longitude + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=driving&key=' + maps_key;
-	var transit_request_url = host + path_maps + path_distance + '?origin=' + latitude + ',' + longitude + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=transit&key=' + maps_key;
-	var bike_request_url = host + path_maps + path_distance + '?origin=' + latitude + ',' + longitude + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=bicycling&key=' + maps_key;
-	var walk_request_url = host + path_maps + path_distance + '?origin=' + latitude + ',' + longitude + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=walking&key=' + maps_key;
+	var car_request_url = host + path_maps + path_distance + '?origin=' + originString + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=driving&key=' + maps_key;
+	var transit_request_url = host + path_maps + path_distance + '?origin=' + originString + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=transit&key=' + maps_key;
+	var bike_request_url = host + path_maps + path_distance + '?origin=' + originString + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=bicycling&key=' + maps_key;
+	var walk_request_url = host + path_maps + path_distance + '?origin=' + originString + '&destination=' + event.location + '&arrival_time=' + arrival_time + '&mode=walking&key=' + maps_key;
 
 	var requestsDone = 0;
 
