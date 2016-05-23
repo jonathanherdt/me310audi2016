@@ -192,6 +192,13 @@ io.on('connection', function (socket) {
 		storage.setItem('users', users);
 	});
 
+	socket.on('app - update transit options', function(travelPreferences)) {
+		if (!verifyLoggedOn(id)) return;
+		users[id].travelPreferences = travelPreferences;
+
+		storage.setItem('users', users);
+	}
+
 	socket.on('get directions for event', function (latitude, longitude, eventData) {
 		// Get data for four different modes of transportation
 		maps.getDistanceToLocationFromCurrentPosition(latitude, longitude, 'driving', eventData, function (data) {
