@@ -322,7 +322,8 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 				if (startOld != startNew ||
 					endOld != endNew ||
 					event.title != compareEvent.title ||
-					event.location != compareEvent.location) {
+					event.location != compareEvent.location ||
+					event.category != compareEvent.category) {
 
 					// event changed, overwrite it but keep transit changes from clock
 					var oldTransitPreference = event.userSelectedTransitOption;
@@ -332,6 +333,7 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 						location: compareEvent.location,
 						title: compareEvent.title,
 						id: compareEvent.id,
+						category: compareEvent.category,
 						userSelectedTransitOption: oldTransitPreference
 					};
 					eventsToUpdate++;
