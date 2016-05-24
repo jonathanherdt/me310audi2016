@@ -50,10 +50,16 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
 			console.log("Car routes are empty :'( " + car_request_url);
+
+			// send some default values to not confuse frontend
+			event.transit_options.car = {};
+			event.transit_options.car.duration = 15;
+			event.transit_options.car.distance = 400;
 		} else {
 			var desc = directions.routes[0].legs[0];
 			event.transit_options.car = {};
 			event.transit_options.car.duration = desc.duration.value / 60;
+			event.transit_options.car.distance = desc.distance.value;
 			if (desc.duration_in_traffic !== undefined) event.transit_options.car.duration_with_traffic = desc.duration_in_traffic.value / 60;
 		}
 		if (requestsDone == 4) callback(event, userID);
@@ -66,6 +72,10 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
 			console.log("Transit routes are empty :'( " + transit_request_url);
+
+			event.transit_options.subway = {
+				duration: 25
+			};
 		} else {
 			var desc = directions.routes[0].legs[0];
 			event.transit_options.subway = {
@@ -86,6 +96,9 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 			directions = JSON.parse(body);
 			if (directions.routes[0] == null) {
 				console.log("Bike routes are empty :'( " + bike_request_url);
+				event.transit_options.bicycle = {
+					duration: 33
+				}
 			} else {
 				var desc = directions.routes[0].legs[0];
 				event.transit_options.bicycle = {
@@ -103,6 +116,9 @@ exports.addTransitInformationToEvent = function (event, userID, origin, callback
 		directions = JSON.parse(body);
 		if (directions.routes[0] == null) {
 			console.log("Walking routes are empty :'( " + walk_request_url);
+			event.transit_options.walking = {
+				duration: 50
+			}
 		} else {
 			var desc = directions.routes[0].legs[0];
 			event.transit_options.walking = {
