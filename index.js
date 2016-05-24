@@ -39,6 +39,8 @@ init();
 var clockSocket;
 var simulatorSocket;
 
+var carSimulatorData = {};
+
 // improved logging
 
 console.logCopy = console.log.bind(console);
@@ -262,6 +264,7 @@ io.on('connection', function (socket) {
 	socket.on('simulatorUpdate', function (data) {
 		console.log('[Car Simulator Data] key: ' + data['key']);
 		console.log('[Car Simulator Data] payLoad: ' + data['payLoad']);
+		carSimulatorData[data['key']] = data['payLoad'];
 		if (clockSocket !== undefined) {
 			clockSocket.emit('[Car Simulator Data] -  Update', data);
 		} else {
