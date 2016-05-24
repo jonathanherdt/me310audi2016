@@ -42,7 +42,6 @@ var simulatorSocket;
 var carSimulatorData = {};
 
 // improved logging
-
 console.logCopy = console.log.bind(console);
 console.log = function() {
     if (arguments.length)
@@ -69,7 +68,6 @@ app.get('/back', function (req, res) {
 			return;
 		}
 
-		
 		oauth2Client.setCredentials(tokens);
 
 		// Get user mail and if succesful add user to user database
@@ -99,7 +97,7 @@ app.get('/back', function (req, res) {
 
 			// the user's home address needs to be saved as well
 			// TODO: specify that address in the app, send it to the server and turn it into lat/long there
-			users[user_id].address = {lat: '37.423', long: '-122.171'};;
+			users[user_id].address = {lat: '37.423', long: '-122.171'};
 
             console.log('new user ' + users[user_id].name + ' (' + user_id + ') authenticated');
 
@@ -133,13 +131,7 @@ io.on('connection', function (socket) {
 		clockSocket = socket;
 	} else if (id === 'simulator') {
 		simulatorSocket = socket;
-	} else {
-		// TODO this does not work like that yet
-		//if (!users[id]) users[id] = {};
-		//users[id].socket = socket;
 	}
-	// TODO (test user not defined yet-check)
-	// TODO get transit info when user logged in from app
 
 	socket.on('app - create new user', function (travelPreferences) {
 		temporaryUsers[id] = {'socket': socket, 'travelPreferences': travelPreferences};
@@ -158,7 +150,7 @@ io.on('connection', function (socket) {
 		console.log('request from not signed on user ' + userId);
 		socket.emit('user not authenticated', userId);
 		return false;
-	}
+	};
 
 	socket.on('check login state', function () {
 		if (!verifyLoggedOn(id)) return;
@@ -173,7 +165,7 @@ io.on('connection', function (socket) {
 			// Once events are received, use sockets.io to send them to the frontend, 
 			socket.emit('next event', events[0]);
 		});
-	})
+	});
 
 	socket.on('app - get users', function () {
 		console.log("command 'app - get users' from " + id);
@@ -186,7 +178,7 @@ io.on('connection', function (socket) {
 			};
 		});
 		socket.emit('user list', stripped_users);
-	})
+	});
 
 	socket.on('delete user', function(userId) {
 		console.log("deleting user " + (users[userId] ? users[userId].name : "<unknown>") + " " + userId);
@@ -232,7 +224,7 @@ io.on('connection', function (socket) {
 
 	/* ------ CLOCK REQUESTS ------ */
 	socket.on('clock - request all calendars', function (data) {
-		dateToday = data.day;
+		dateToday = new Date(Date.parse(data.day));
 
 		// the clock requests the calendar for a specific day for all logged in users
 		// watch out: if this changes, please also update socket.on 'app - get calendar'
@@ -441,7 +433,7 @@ function getEventOrigin(userID, i) {
 			origin = eventBefore.location;
 		}
 	}
-	console.log("Going to " + event.title + " at " + event.location + " from " + JSON.stringify(origin));
+	//console.log("Going to " + event.title + " at " + event.location + " from " + JSON.stringify(origin));
 	return origin;
 };
 
