@@ -48,7 +48,7 @@ module.exports = function (googleCalendar) {
 		var todayMidnight = new Date(day);
 		todayMidnight.setHours(0, 0, 0, 0);
 		var dayAfterTomorrowMidnight = new Date(day);
-		dayAfterTomorrowMidnight.setDate(dayAfterTomorrowMidnight.getDate() + 2);
+		dayAfterTomorrowMidnight.setDate(dayAfterTomorrowMidnight.getDate() + 3);
 		dayAfterTomorrowMidnight.setHours(0, 0, 0, 0);
 
 		googleCalendar.events.list({
