@@ -248,6 +248,9 @@ io.on('connection', function (socket) {
 						event.userSelectedTransitOption = data.event.userSelectedTransitOption;
 						addOptimalTransitToEvent(event, userID);
 						storage.setItem('users', users);
+						var calendar = createCalendarObjectFromEvents(users[userID].events, userID);
+						sendToClocks('clock - calendar update', calendar);
+						return;
 					}
 				});
 			}
