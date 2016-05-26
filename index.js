@@ -4,6 +4,7 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var storage = require('node-persist');
+var moment = require('moment');
 
 var google = require('googleapis');
 var googleCal = google.calendar('v3');
@@ -217,14 +218,14 @@ io.on('connection', function (socket) {
 			console.log('ERROR: app requests calendars while no events exists on the server!');
 			return;
 		}
-		dateToday = new Date(Date.parse(data.day));
+		dateToday = moment(data.day);
 		var calendar = createCalendarObjectFromEvents(events, id);
 		socket.emit('app - calendar', calendar);
 	});
 
 	/* ------ CLOCK REQUESTS ------ */
 	socket.on('clock - request all calendars', function (data) {
-		dateToday = new Date(Date.parse(data.day));
+		dateToday = moment(data.day);
 
 		// the clock requests the calendar for a specific day for all logged in users
 		// watch out: if this changes, please also update socket.on 'app - get calendar'

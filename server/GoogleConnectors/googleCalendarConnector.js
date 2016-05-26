@@ -1,3 +1,5 @@
+var moment = require('moment');
+
 module.exports = function (googleCalendar) {
 
 	var module = {};
@@ -45,17 +47,17 @@ module.exports = function (googleCalendar) {
 			return;
 		}
 
-		var todayMidnight = new Date(day);
-		todayMidnight.setHours(0, 0, 0, 0);
-		var dayAfterTomorrowMidnight = new Date(day);
-		dayAfterTomorrowMidnight.setDate(dayAfterTomorrowMidnight.getDate() + 3);
-		dayAfterTomorrowMidnight.setHours(0, 0, 0, 0);
+		var todayMidnight = moment(day);
+		todayMidnight.startOf('day'); 
+		var dayAfterTomorrowMidnight = moment(day);
+		dayAfterTomorrowMidnight.add(2, 'days');
+		dayAfterTomorrowMidnight.startOf('day');
 
 		googleCalendar.events.list({
 			auth: auth,
 			calendarId: 'primary',
-			timeMin: todayMidnight.toISOString(),
-			timeMax: dayAfterTomorrowMidnight.toISOString(),
+			timeMin: todayMidnight.format("YYYY-MM-DDTHH:mm:ssZ"),
+			timeMax: dayAfterTomorrowMidnight.format("YYYY-MM-DDTHH:mm:ssZ"),
 			singleEvents: true,
 			orderBy: 'startTime'
 		}, function (err, response) {
