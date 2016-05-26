@@ -210,14 +210,14 @@ io.on('connection', function (socket) {
 		});
 	});
 
-	socket.on('app - get calendar', function(date) {
+	socket.on('app - get calendar', function(data) {
 		if (!verifyLoggedOn(id)) return;
 		var events = users[id].events;
 		if (events == undefined || events.length == 0) {
 			console.log('ERROR: app requests calendars while no events exists on the server!');
 			return;
 		}
-		dateToday = date.day;
+		dateToday = new Date(Date.parse(data.day));
 		var calendar = createCalendarObjectFromEvents(events, id);
 		socket.emit('app - calendar', calendar);
 	});
