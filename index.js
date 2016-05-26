@@ -246,6 +246,8 @@ io.on('connection', function (socket) {
 				users[userID].events.forEach(function(event) {
 					if (event.id == data.event.id) {
 						event.userSelectedTransitOption = data.event.userSelectedTransitOption;
+						addOptimalTransitToEvent(event, userID);
+						storage.setItem('users', users);
 					}
 				});
 			}
