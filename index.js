@@ -36,7 +36,7 @@ var dateToday;
 init();
 
 // Clock and simulator connection
-var clockSocket;
+var clockSockets = [];
 var simulatorSocket;
 
 var carSimulatorData = {};
@@ -128,7 +128,7 @@ io.on('connection', function (socket) {
 
     // save sockets
     if (id === 'clock') {
-		clockSocket = socket;
+		clockSockets.push(socket);
 	} else if (id === 'simulator') {
 		simulatorSocket = socket;
 	}
@@ -182,7 +182,7 @@ io.on('connection', function (socket) {
 
 	socket.on('delete user', function(userId) {
 		console.log("deleting user " + (users[userId] ? users[userId].name : "<unknown>") + " " + userId);
-		clockSocket.emit('clock - user deleted', users[userId].name);
+		sendToClocks('clock - user deleted', users[userId].name);
 		delete users[userId];
 		storage.setItem('users', users);
 	});
@@ -257,11 +257,7 @@ io.on('connection', function (socket) {
 		console.log('[Car Simulator Data] key: ' + data['key']);
 		console.log('[Car Simulator Data] payLoad: ' + data['payLoad']);
 		carSimulatorData[data['key']] = data['payLoad'];
-		if (clockSocket !== undefined) {
-			clockSocket.emit('[Car Simulator Data] -  Update', data);
-		} else {
-			console.log('Received Car Simulator Data before Socket with ClockApp opened. Throwing away data!')
-		}
+		sendToClocks('[Car Simulator Data] -  Update', data);
 	});
 
 });
@@ -346,7 +342,7 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 						addOptimalTransitToEvent(event, userID);
 						var calendar = createCalendarObjectFromEvents(users[userID].events, userID);
 						storage.setItem('users', users);
-						if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+						sendToClocks('clock - calendar update', calendar);
 					});
 
 					// go to the next event and delete this event from the new events
@@ -365,7 +361,7 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 		events.splice(i, 1);
 		storage.setItem('users', users);
 		var calendar = createCalendarObjectFromEvents(events, userID);
-		if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+		sendToClocks('clock - calendar update', calendar);
 	}
 
 	// if there are still events in the new calendar at this point, these are new events - add them
@@ -387,7 +383,7 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 						addOptimalTransitToEvent(event, userID);
 						var calendar = createCalendarObjectFromEvents(users[userID].events, userID);
 						storage.setItem('users', users);
-						if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+						sendToClocks('clock - calendar update', calendar);
 					});
 					continue loop;
 				}
@@ -404,7 +400,7 @@ function checkForAndUpdateChanges(userID, newCal, callback) {
 				addOptimalTransitToEvent(event, userID);
 				var calendar = createCalendarObjectFromEvents(users[userID].events, userID);
 				storage.setItem('users', users);
-				if (clockSocket !== undefined) clockSocket.emit('clock - calendar update', calendar);
+				sendToClocks('clock - calendar update', calendar);
 			});
 		}
 	}
@@ -537,6 +533,12 @@ function addOptimalTransitToEvent(event, userID) {
 	}
 
 	return event;
+};
+
+function sendToClocks(name, data) {
+	clockSockets.forEach(function(clockSocket) {
+		clockSocket.emit(name, data);
+	});
 };
 
 http.listen(8080, function () {
