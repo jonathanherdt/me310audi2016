@@ -266,6 +266,10 @@ io.on('connection', function (socket) {
 		sendToClocks('[Car Simulator Data] -  Update', data);
 	});
 
+	socket.on('CompanionApp - Device ID', function (data) {
+		console.log('CompanionApp - Device ID: ' + data)
+	});
+
 });
 
 /* ------ START UP ------ */
